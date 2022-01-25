@@ -20,7 +20,7 @@
  Example configuration:
  $config = [
 	"data_dir" => '/tmp',
-	"tablename" => 'csvdb-testdb-123456789.csv',
+	"tablename" => 'csvdb-testdb.csv',
 	"max_record_length" => 100,
 	"columns" => ["name", "username"],
 	"auto_timestamps" => true,
@@ -49,19 +49,20 @@ function csvdb_create_record(&$config, $values)
 }
 
 
+// Fetch records by multiple r_ids
 function csvdb_fetch_records(&$config, $r_ids)
 {
 	$csv_filepath = _csvdb_is_valid_config($config);
 	if(!$csv_filepath || sizeof($r_ids) == 0) return false;
 
-	$db_file = fopen($csv_filepath, 'r');
+	$db_fp = fopen($csv_filepath, 'r');
 
 	$records = [];
 	foreach ($r_ids as $r_id) {
-		$records[] = _csvdb_read_record_raw($config, $db_file, $r_id);
+		$records[] = _csvdb_read_record_raw($config, $db_fp, $r_id);
 	}
 
-	fclose($db_file);
+	fclose($db_fp);
 
 	if($config['log'] && $record) trigger_error("Read [r_id: $r_id] from " . basename($csv_filepath, ".csv"));
 
@@ -69,17 +70,17 @@ function csvdb_fetch_records(&$config, $r_ids)
 }
 
 
-// Read record from CSV file by id (1, 2, 3...), associative array
+// Read record from CSV file by r_id as an associative array
 function csvdb_read_record(&$config, $r_id)
 {
 	$csv_filepath = _csvdb_is_valid_config($config);
 	if(!$csv_filepath || $r_id < 1) return false;
 
-	$db_file = fopen($csv_filepath, 'r');
+	$db_fp = fopen($csv_filepath, 'r');
 
-	$record = _csvdb_read_record_raw($config, $db_file, $r_id);
+	$record = _csvdb_read_record_raw($config, $db_fp, $r_id);
 
-	fclose($db_file);
+	fclose($db_fp);
 
 	if($config['log'] && $record) trigger_error("Read [r_id: $r_id] from " . basename($csv_filepath, ".csv"));
 
@@ -118,9 +119,9 @@ function csvdb_delete_record(&$config, $r_id, $hard_delete=false)
 	$csv_filepath = _csvdb_is_valid_config($config);
 	if(!$csv_filepath || $r_id < 1) return false;
 
-	$db_file = fopen($csv_filepath, 'c+');
+	$db_fp = fopen($csv_filepath, 'c+');
 
-	$record_position_id = _csvdb_seek_id($db_file, $config, $r_id);
+	$record_position_id = _csvdb_seek_id($config, $db_fp, $r_id);
 	if($record_position_id === false) return false;
 
 	if($hard_delete){
@@ -128,18 +129,18 @@ function csvdb_delete_record(&$config, $r_id, $hard_delete=false)
 		for($i=0; $i < $total_fields; $i++) $values[] = '';
 		$values[] = str_repeat('X', $config['max_record_length'] - $total_fields);
 
-		fputcsv($db_file, $values);
+		fputcsv($db_fp, $values);
 	} else {
-		$raw_record = fread($db_file, $config['max_record_length']);
+		$raw_record = fread($db_fp, $config['max_record_length']);
 
 		$flag_start = strrpos($raw_record, ",-") + 1;
 		$delete_flag = str_repeat('x', $config['max_record_length'] - $flag_start);
 
-		fseek($db_file, $record_position_id + $flag_start);
-		fwrite($db_file, $delete_flag);
+		fseek($db_fp, $record_position_id + $flag_start);
+		fwrite($db_fp, $delete_flag);
 	}
 	
-	fclose($db_file);
+	fclose($db_fp);
 }
 
 
@@ -153,12 +154,12 @@ function csvdb_list_records(&$config, $page=1, $limit=-1)
 				(($page - 1) * $limit * ($config['max_record_length'] + 1)) / ($config['max_record_length'] + 1)
 			) + 1;
 
-	$db_file = fopen($csv_filepath, 'r');
+	$db_fp = fopen($csv_filepath, 'r');
 	$records = [];
 	if($config['log']) $r_ids = [];
 
 	for ($i=0, $j=0; $limit == -1 ? true : $i < $limit; $i++, $j=0, $r_id++) {
-		$record = _csvdb_read_record_raw($config, $db_file, $r_id);
+		$record = _csvdb_read_record_raw($config, $db_fp, $r_id);
 		if($record === false || $record === 0) continue;
 		if($record === -1) break;
 
@@ -166,7 +167,7 @@ function csvdb_list_records(&$config, $page=1, $limit=-1)
 		if($config['log']) $r_ids[] = $r_id;
 	}
 
-	fclose($db_file);
+	fclose($db_fp);
 
 	if($config['log']) trigger_error("Read [r_id: " . implode($r_ids, ', ') . "] from " . basename($csv_filepath, ".csv"));
 
@@ -179,7 +180,7 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 	$csv_filepath = _csvdb_is_valid_config($config);
 	if(!$csv_filepath || $page < 1) return false;
 
-	$cache_tablename = '/__csvdb_cache/' . basename($config['tablename'], '.csv') .  '--search-' . $cache_key . '.csv';
+	$cache_tablename = '/__csvdb_cache/' . basename($config['tablename'], '.csv') .  '_' . $cache_key . '.csv';
 	$cache_filepath  = $config['data_dir'] . $cache_tablename;
 
 	// Cache busting, if search_fn is false, to regenerate cache in the next run
@@ -242,12 +243,29 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 //
 
 
-// Read record from CSV file by id (1, 2, 3...)
-function _csvdb_read_record_raw(&$config, $db_file, $r_id)
+// Checks if config is valid and returns filepath
+function _csvdb_is_valid_config(&$config)
 {
-	_csvdb_seek_id($db_file, $config, $r_id);
+	return !$config || !$config['max_record_length'] || !$config['columns'] ? false : $config['data_dir'] . '/' . $config['tablename'];
+}
 
-	$raw_record = fgetcsv($db_file);
+
+// Seek fp to record_id position
+function _csvdb_seek_id(&$config, $db_fp, $r_id)
+{
+	$r_id_position = ($r_id - 1) * $config['max_record_length'] + ($r_id - 1);
+	fseek($db_fp, $r_id_position);
+
+	return $r_id_position;
+}
+
+
+// Read record from CSV file by r_id
+function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
+{
+	_csvdb_seek_id($config, $db_fp, $r_id);
+
+	$raw_record = fgetcsv($db_fp);
 	if($raw_record === false) return -1;
 
 	$delete_flag = array_pop($raw_record);
@@ -272,13 +290,7 @@ function _csvdb_read_record_raw(&$config, $db_file, $r_id)
 }
 
 
-function _csvdb_is_valid_config(&$config)
-{
-	return !$config || !$config['max_record_length'] || !$config['columns'] ? false : $config['data_dir'] . '/' . $config['tablename'];
-}
-
-
-// Write an array of values to CSV
+// Write an array of values to CSV file
 function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 {
 	$csv_filepath = _csvdb_is_valid_config($config);
@@ -286,19 +298,20 @@ function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 
 	if(sizeof($values) > sizeof($config['columns'])) $values = array_slice($values, 0, sizeof($config['columns']));
 
+	// New record
 	if($r_id == NULL){
-		$db_file = fopen($csv_filepath, 'a');
+		$db_fp = fopen($csv_filepath, 'a');
 
 		if($config['auto_timestamps']){
 			$values['created_at'] = date('U');
 			$values['updated_at'] = date('U');
 		}
 	} else {
-		$db_file = fopen($csv_filepath, 'c+');
-		_csvdb_seek_id($db_file, $config, $r_id);
+		$db_fp = fopen($csv_filepath, 'c+');
+		_csvdb_seek_id($config, $db_fp, $r_id);
 
 		if($partial_update || $config['auto_timestamps']){
-			$record = fgetcsv($db_file);
+			$record = fgetcsv($db_fp);
 			array_pop($record);
 		}
 
@@ -320,21 +333,20 @@ function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 		}
 
 		if($partial_update || $config['auto_timestamps']){
-			_csvdb_seek_id($db_file, $config, $r_id);
+			_csvdb_seek_id($config, $db_fp, $r_id);
 		}
 	}
 	
-	$failed_append = _csvdb_write_record($db_file, $config, $values) === false ? true : false;
+	$write_success = _csvdb_write_record($db_fp, $config, $values);
 	
-	fclose($db_file);
-
-	if($failed_append && $config['log']) trigger_error("Wrote [$values_str] to " . basename($csv_filepath, ".csv"));
+	fclose($db_fp);
 	
-	return $failed_append ? false : true;
+	return $write_success;
 }
 
 
-function _csvdb_write_record($db_file, &$config, $values)
+// Related to the above function
+function _csvdb_write_record($db_fp, &$config, $values)
 {
 	$values_str = implode(',', $values);
 	$csv_line_length = strlen($values_str);
@@ -348,19 +360,12 @@ function _csvdb_write_record($db_file, &$config, $values)
 
 	$values[] = str_repeat('-', $last_value_length);
 	
-	fputcsv($db_file, $values);
+	fputcsv($db_fp, $values);
 
+	if($config['log']) trigger_error("Wrote [$values_str] to " . basename($csv_filepath, ".csv"));
 	return true;
 }
 
-
-function _csvdb_seek_id($db_file, &$config, $r_id)
-{
-	$r_id_position = ($r_id - 1) * $config['max_record_length'] + ($r_id - 1);
-	fseek($db_file, $r_id_position);
-
-	return $r_id_position;
-}
 
 
 
@@ -529,10 +534,10 @@ function test_csvdb( )
 	// Should create cache
 	csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
 
-	echo "<hr>\nAll tests complete!";
 	echo "<hr>\nRaw CSV file:\n" . file_get_contents($csv_filepath) . "<hr>\n";
 	unlink($csv_filepath);
 	echo "Deleted " . $csv_filepath . "\n";
+	echo "<hr>\nAll tests completed successfully!\n";
 }
 
 
