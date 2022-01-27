@@ -45,6 +45,10 @@ function csvdb_create_table(&$config)
 // Write an associative array of column values to CSV
 function csvdb_create_record(&$config, $values)
 {
+	if( !call_user_func($config['validations_callback'], NULL, $values, $config) ){
+		return false;
+	}
+
 	return csvdb_update_record($config, NULL, $values);
 }
 
@@ -93,6 +97,10 @@ function csvdb_update_record(&$config, $r_id, $values, $partial_update=false)
 {
 	$csv_filepath = _csvdb_is_valid_config($config);
 	if(!$csv_filepath || !$values) return false;
+
+	if( !call_user_func($config['validations_callback'], $r_id, $values, $config) ){
+		return false;
+	}
 
 	$is_indexed_values = reset(array_keys($values)) === 0 ? true : false;
 
@@ -392,10 +400,11 @@ function _csvdb_write_record($db_fp, &$config, $values)
 function test_csvdb( )
 {
 	$config = [
-		"data_dir" => sys_get_temp_dir(),
 		"tablename" => 'csvdb-testdb-123456789.csv',
+		"data_dir" => sys_get_temp_dir(),
 		"max_record_length" => 100,
 		"columns" => ["name", "username"],
+		"validations_callback" => "csvdb_test_validations_callback",
 		"auto_timestamps" => true,
 		"log" => true
 	];
@@ -553,6 +562,15 @@ function _test_csvdb_search_cb($records)
 	return array_map(function($result){
 		return [ 'r_id' => $result['r_id'], 'username' => $result['username'] ];
 	}, $results);
+}
+
+
+function csvdb_test_validations_callback($r_id, $values, $config)
+{
+	// Return false to stop write operation
+	// if($r_id > 3) return false;
+
+	return true;
 }
 
 

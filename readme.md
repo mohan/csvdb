@@ -36,13 +36,22 @@ Project Status: Work in progress
 
 ```php
 $table_config = [
-	"data_dir" => '/tmp',
 	"tablename" => 'csvdb-testdb.csv',
+	"data_dir" => '/tmp',
 	"max_record_length" => 100,
 	"columns" => ["name", "username"],
+	"validations_callback" => "csvdb_testdb_validations_callback",
 	"auto_timestamps" => true,
 	"log" => true
 ];
+```
+
+Example validations:
+```php
+function csvdb_testdb_validations_callback($r_id, $values, $config) {
+	if(!$values['username']) return false;
+	return true;
+}
 ```
 
 Example CSV file:
@@ -84,7 +93,7 @@ e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
 
  7. csvdb_fetch_records($config, $r_ids)
  	* Return multiple records by given r_ids array.
- 	
+
  8. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
  	* `$search_fn` is PHP callable type.
  	* Search function is called only once with all records from the given table.
@@ -110,7 +119,6 @@ e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
 * test flock
 * Data integrity on power failure
 * Implement arr_getcsv instead of implode
-* Validations
 * text field
 * More documentation
 * More testing
