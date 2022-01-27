@@ -192,9 +192,10 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 	}
 
 	if(!file_exists($cache_filepath)){
-		$records = csvdb_list_records($config, 1, -1);
+		$records = csvdb_list_records($config);
 		$results = call_user_func($search_fn, $records);
 
+		// Calculate max_result_length
 		$results_str_arr = []; $max_result_length = 0;
 		foreach ($results as $result) {
 			$result_str = implode(",", $result);
@@ -203,7 +204,7 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 
 		$fp = fopen($cache_filepath, 'w');
 		
-		// Columns record
+		// Column names record
 		$result = array_keys(reset($results));
 		$result[] = str_repeat('-', $max_result_length - strlen(implode(',', $result)) + 1);
 		fputcsv($fp, $result);
