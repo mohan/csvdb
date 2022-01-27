@@ -58,26 +58,33 @@ e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
 
  1. csvdb_create_table($config)
  	* Creates an empty table CSV file and the cache folder.
+
  2. csvdb_create_record($config, $values)
  	* Adds a new record at the end.
  	* Accepts either indexed array or associative array.
  	* Todo: Return new r_id.
+
  3. csvdb_read_record($config, $r_id)
  	* Return associative array of the record at r_id.
+
  4. csvdb_update_record($config, $r_id, $values, $partial_update=false)
  	* Update a record at record at r_id.
  	* Values can be indexed array or associative array.
  	* partial_update updates only a single value in the record. (Not implemented efficiently for simplicity.)
  	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
+
  5. csvdb_delete_record($config, $r_id, $hard_delete=false)
  	* Deletes a record by r_id.
  	* Default is soft delete, i.e data is not removed and record can be restored.
  	* With hard delete all values are removed permanently.
  	* Deleted records remain in the table, for r_ids to remain the same.
+
  6. csvdb_list_records($config, $page=1, $limit=-1)
  	* Return all records in the table, with pagination if needed.
+
  7. csvdb_fetch_records($config, $r_ids)
  	* Return multiple records by given r_ids array.
+ 	
  8. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
  	* `$search_fn` is PHP callable type.
  	* Search function is called only once with all records from the given table.
