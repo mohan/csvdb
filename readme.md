@@ -9,7 +9,7 @@ Project Status: Work in progress
 
 * ~300lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
 	* PHP natively supports fgetcsv and fputcsv.
-	* No need for additional database software.
+	* No need for additional database software/extensions.
 	* Write your custom functions using CSVDB for each operation similar to SQL statements.
 * Implements `fixed width record` style.
 	* Seeking records is fast, as `record_ids (r_id)` are predictable (just a multiplier of record width).
@@ -23,13 +23,23 @@ Project Status: Work in progress
 * Built-in logging for tracking changes.
 
 
+Example CSV file:
+```
+a,b1234,1643121629,1643121629,--	<- Regular record - r_id: 1
+c,d,1643121629,1643121629,------	<- Regular record - r_id: 2
+e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
+,,,,XXXXXXXXXXXXXXXXXXXXXXXXXXXX	<- Hard deleted record - r_id: 4
+```
+
+
 ## Note
 
 * Does not implement expanding varchar/text field. It is recommended to use regular text files and saving filename in table.
 	* In future this may be a built-in functionality.
-* Database maintenance like archiving and other operations is manual.
+* Database maintenance like archiving and other operations are manual.
 * **Not tested**, use at your own risk.
 * Please feel free to implement it yourself.
+
 
 
 ## Example configuration:
@@ -46,6 +56,7 @@ $table_config = [
 ];
 ```
 
+
 Example validations:
 ```php
 function csvdb_testdb_validations_callback($r_id, $values, $config) {
@@ -54,13 +65,6 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 }
 ```
 
-Example CSV file:
-```
-a,b1234,1643121629,1643121629,--	<- Regular record - r_id: 1
-c,d,1643121629,1643121629,------	<- Regular record - r_id: 2
-e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
-,,,,XXXXXXXXXXXXXXXXXXXXXXXXXXXX	<- Hard deleted record - r_id: 4
-```
 
 
 ## Available functions
@@ -108,8 +112,28 @@ e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
 
 
 
-## Notes
+## Notes/thoughts
 
+* PHP is C language
+* Object Oriented Programming was purposefully NOT choosen for 
+	* simplicity
+	* clarity
+	* Level 1 code folding
+	* User defined function naming in functional programming and no other keywords (Ex: Class).
+		* `csvdb_list_records($config)` is the same as `$table = new csvdb($config); $table->list_records();`
+	* Private encapsulation is not needed, as it is all my own code.
+		* Underscoring is enough.
+	* compatability with C, and 
+	* ease of implementation in other languages in future, including C language.
+	* C extension for PHP for more speed, in future.
+* Power of PHP is associative array
+	* Only data structure needed to implement in C.
+	* Implement C compiler extension for missing associative array syntax.
+	* Namespaces?
+* Targeted use case of building a C language web application as CGI/Apache module.
+	* Compiled languages are faster as the whole machine code is loaded into memory, which is superior to opcode.
+* C language is beautiful. There are only user defined functions.
+	* And so is PHP.
 
 
 
