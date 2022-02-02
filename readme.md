@@ -36,6 +36,8 @@ e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
 
 * Does not implement expanding varchar/text field. It is recommended to use regular text files and saving filename in table.
 	* In future this may be a built-in functionality.
+* For storing data such as a varied column or serialized data, PHP `serialize` can be used in the same table as a column, instead of a new table.
+	* Analogous to `array` or `json` column type in a regular database.
 * Database maintenance like archiving and other operations are manual.
 * **Not tested**, use at your own risk.
 * Please feel free to implement it yourself.
