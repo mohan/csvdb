@@ -409,10 +409,11 @@ function test_csvdb( )
 		"log" => true
 	];
 
-	echo "<style>body{background:#f8f8f8;font-size:111%;margin-bottom:50%;line-height:110%;}hr{margin:15px 0;}pre{margin: 30px;}</style>";
-	echo "<pre>\n";
+	echo "<style>body{background:#f9f9f9;font-size:106%;line-height:130%;}h1,h2{padding-bottom: 10px; border-bottom:1px solid #ccc;}";
+	echo "hr{border-top: 1px solid #ddd;margin:15px 0;}pre{margin: 30px;white-space:pre-wrap;}</style>";
+	echo "<div style='margin: 10px auto; max-width: 80%; border: 1px solid #ddd; border-radius:3px; padding: 10px 20px;'><pre><h1>CSVDB</h1>\n";
 	echo file_get_contents('./readme.md');
-	echo "\n\n\n\n<hr>\n## Tests\n\nConfiguration:\n";
+	echo "\n\n\n\n\n\n\n\n<h2>Tests</h2>\n## Tests\n\nConfiguration:\n";
 	print_r($config);
 	echo "\n\n";
 

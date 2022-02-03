@@ -7,6 +7,7 @@ License: GPL
 Project Status: Work in progress
 
 
+
 * ~300lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
 	* PHP natively supports fgetcsv and fputcsv.
 	* No need for additional database software/extensions.
@@ -25,10 +26,10 @@ Project Status: Work in progress
 
 Example CSV file:
 ```
-a,b1234,1643121629,1643121629,--	<- Regular record - r_id: 1
-c,d,1643121629,1643121629,------	<- Regular record - r_id: 2
-e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
-,,,,XXXXXXXXXXXXXXXXXXXXXXXXXXXX	<- Hard deleted record - r_id: 4
+a,bpqrs,1643121629,1643121629,--	<- Record r_id: 1
+c,d,1643121629,1643121629,------	<- Record r_id: 2
+ef,g,1643121629,1643121629,xxxxx	<- Soft deleted record, r_id: 3
+,,,,XXXXXXXXXXXXXXXXXXXXXXXXXXXX	<- Hard deleted record, r_id: 4
 ```
 
 
@@ -36,7 +37,7 @@ e1,f,1643121629,1643121629,xxxxx	<- Soft deleted record - r_id: 3
 
 * Does not implement expanding varchar/text field. It is recommended to use regular text files and saving filename in table.
 	* In future this may be a built-in functionality.
-* For storing data such as a varied column or serialized data, PHP `serialize` can be used in the same table as a column, instead of a new table.
+* For a varied column or serialized data, PHP `serialize` can be used in the same table as a column, instead of a new table.
 	* Analogous to `array` or `json` column type in a regular database.
 * Database maintenance like archiving and other operations are manual.
 * **Not tested**, use at your own risk.
@@ -145,6 +146,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * test flock
 * Data integrity on power failure
 * Implement arr_getcsv instead of implode
+* Type casting
 * text field
 * More documentation
 * More testing
