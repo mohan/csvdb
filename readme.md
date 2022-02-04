@@ -148,7 +148,8 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * test flock
 * Data integrity on power failure
 * Type casting
-* Unique constraint
+* Unique constraint / Search constraint
 * text field
 * More documentation
 * More testing
+* Write a book `Building a database management system`
