@@ -35,7 +35,7 @@ function csvdb_create_table(&$config)
 	if(!$csv_filepath) return false;
 	if(file_exists($csv_filepath)) return false;
 
-	if($config['log']) trigger_error("Created file [" . basename($csv_filepath, ".csv") . "]");
+	if($config['log']) _csvdb_log($config, "created file");
 
 	if(!is_dir($config['data_dir'] . '/__csvdb_cache')) mkdir($config['data_dir'] . '/__csvdb_cache');
 	return touch($csv_filepath);
@@ -68,7 +68,7 @@ function csvdb_fetch_records(&$config, $r_ids)
 
 	fclose($db_fp);
 
-	if($config['log'] && $record) trigger_error("Read [r_id: $r_id] from " . basename($csv_filepath, ".csv"));
+	if($config['log'] && $record) _csvdb_log($config, "read [r_id: $r_id]");
 
 	return $records;
 }
@@ -86,7 +86,7 @@ function csvdb_read_record(&$config, $r_id)
 
 	fclose($db_fp);
 
-	if($config['log'] && $record) trigger_error("Read [r_id: $r_id] from " . basename($csv_filepath, ".csv"));
+	if($config['log'] && $record) _csvdb_log($config, "read [r_id: $r_id]");
 
 	return $record;
 }
@@ -177,7 +177,7 @@ function csvdb_list_records(&$config, $page=1, $limit=-1)
 
 	fclose($db_fp);
 
-	if($config['log']) trigger_error("Read [r_id: " . implode($r_ids, ', ') . "] from " . basename($csv_filepath, ".csv"));
+	if($config['log']) _csvdb_log($config, "Read [r_id: " . join($r_ids, ', ') . ']');
 
 	return $records;
 }
@@ -193,7 +193,7 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 
 	// Cache busting, if search_fn is false, to regenerate cache in the next run
 	if($search_fn === false){
-		if($config['log']) trigger_error("Deleted file [" . basename($cache_filepath, ".csv") . "]");
+		if($config['log']) _csvdb_log($config, "Deleted file");
 
 		unlink($cache_filepath);
 		return;
@@ -206,24 +206,24 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 		// Calculate max_result_length
 		$results_str_arr = []; $max_result_length = 0;
 		foreach ($results as $result) {
-			$result_str = implode(",", $result);
-			if(strlen($result_str) > $max_result_length) $max_result_length = strlen($result_str);
+			$result_str_len = _csvdb_csv_arr_str_length($result);
+			if($result_str_len > $max_result_length) $max_result_length = $result_str_len;
 		}
 
 		$fp = fopen($cache_filepath, 'w');
 		
 		// Column names record
 		$result = array_keys(reset($results));
-		$result[] = str_repeat('-', $max_result_length - strlen(implode(',', $result)) + 1);
+		$result[] = str_repeat('-', $max_result_length - _csvdb_csv_arr_str_length($result) + 1);
 		fputcsv($fp, $result);
 
 		foreach ($results as $result) {
-			$result[] = str_repeat('-', $max_result_length - strlen(implode(',', $result)) + 1);
+			$result[] = str_repeat('-', $max_result_length - _csvdb_csv_arr_str_length($result) + 1);
 			fputcsv($fp, $result);
 		}
 		fclose($fp);
 
-		if($config['log']) trigger_error("Created file [" . basename($cache_tablename, ".csv") . "]");
+		if($config['log']) _csvdb_log($config, "Created file");
 	}
 
 	$fp = fopen($cache_filepath, 'r');
@@ -357,13 +357,13 @@ function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 // Related to the above function
 function _csvdb_write_record($db_fp, &$config, $values)
 {
-	$values_str = implode(',', $values);
-	$csv_line_length = strlen($values_str);
+	$csv_line_length = _csvdb_csv_arr_str_length($values);
 	$last_value_length = $config['max_record_length'] - $csv_line_length - 1;
-	
+
+	$values_str = join(',', $values);	
 	if($csv_line_length + $last_value_length + 1 > $config['max_record_length'])
 	{
-		if($config['log']) trigger_error("Failed to write [$values_str]");
+		if($config['log']) _csvdb_log($config, "failed to write [$values_str]");
 		return false;
 	}
 
@@ -371,13 +371,30 @@ function _csvdb_write_record($db_fp, &$config, $values)
 	
 	fputcsv($db_fp, $values);
 
-	if($config['log']) trigger_error("Wrote [$values_str] to " . basename($csv_filepath, ".csv"));
+	if($config['log']) _csvdb_log($config, "wrote [$values_str]");
 	return true;
 }
 
 
+// Length of CSV line output from array
+function _csvdb_csv_arr_str_length($values)
+{
+	$i = 0;
+	foreach ($values as $value) {
+		$i += strlen($value);
+		$i += substr_count($value, "\""); // Double quote escape
+
+		$i++; // ,
+	}
+
+	return $i - 1; // Remove last ,
+}
 
 
+function _csvdb_log(&$config, $message)
+{
+	trigger_error(basename($config['tablename'], ".csv") . ': ' . $message);
+}
 
 
 
@@ -410,7 +427,7 @@ function test_csvdb( )
 	];
 
 	echo "<style>body{background:#f9f9f9;font-size:106%;line-height:130%;}h1,h2{padding-bottom: 10px; border-bottom:1px solid #ccc;}";
-	echo "hr{border-top: 1px solid #ddd;margin:15px 0;}pre{margin: 30px;white-space:pre-wrap;}</style>";
+	echo "hr{border-top: 1px solid #ddd;margin:15px 0;}pre{margin: 30px;white-space:pre-wrap;tab-size:4;}</style>";
 	echo "<div style='margin: 10px auto; max-width: 80%; border: 1px solid #ddd; border-radius:3px; padding: 10px 20px;'><pre><h1>CSVDB</h1>\n";
 	echo file_get_contents('./readme.md');
 	echo "\n\n\n\n\n\n\n\n<h2>Tests</h2>\n## Tests\n\nConfiguration:\n";
@@ -544,6 +561,7 @@ function test_csvdb( )
 	csvdb_search_records($config, 'search_cache_key', false);
 	// Should create cache
 	csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
+	csvdb_search_records($config, 'search_cache_key', false);
 
 	echo "<hr>\nRaw CSV file:\n" . file_get_contents($csv_filepath) . "<hr>\n";
 	unlink($csv_filepath);

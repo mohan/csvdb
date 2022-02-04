@@ -129,12 +129,14 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 	* compatability with C, and 
 	* ease of implementation in other languages in future, including C language.
 	* C extension for PHP for more speed, in future.
+* Namespaces?
+* Targeted use case of building a C language web application as CGI/Apache module.
+	* Compiled languages are faster as the whole machine code is loaded into memory, which is superior to opcode.
 * Power of PHP is associative array
 	* Only data structure needed to implement in C.
 	* Implement C compiler extension for missing associative array syntax.
-	* Namespaces?
-* Targeted use case of building a C language web application as CGI/Apache module.
-	* Compiled languages are faster as the whole machine code is loaded into memory, which is superior to opcode.
+	* Garbage collection is just calling `free` at regular intervals.
+* C has `printf` for templating, PHP has `printf`.
 * C language is beautiful. There are only user defined functions.
 	* And so is PHP.
 
@@ -145,7 +147,6 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * Code cleanup
 * test flock
 * Data integrity on power failure
-* Implement arr_getcsv instead of implode
 * Type casting
 * text field
 * More documentation
