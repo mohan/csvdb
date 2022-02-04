@@ -135,7 +135,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * Power of PHP is associative array
 	* Only data structure needed to implement in C.
 	* Implement C compiler extension for missing associative array syntax.
-	* Garbage collection is just calling `free` at regular intervals.
+	* Garbage collection is just calling `free` at regular intervals, mark and sweep style/reference counting.
 * C has `printf` for templating, PHP has `printf`.
 * C language is beautiful. There are only user defined functions.
 	* And so is PHP.
@@ -148,6 +148,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * test flock
 * Data integrity on power failure
 * Type casting
+* Unique constraint
 * text field
 * More documentation
 * More testing

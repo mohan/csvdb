@@ -35,7 +35,7 @@ function csvdb_create_table(&$config)
 	if(!$csv_filepath) return false;
 	if(file_exists($csv_filepath)) return false;
 
-	if($config['log']) _csvdb_log($config, "created file");
+	_csvdb_log($config, "created file");
 
 	if(!is_dir($config['data_dir'] . '/__csvdb_cache')) mkdir($config['data_dir'] . '/__csvdb_cache');
 	return touch($csv_filepath);
@@ -177,7 +177,7 @@ function csvdb_list_records(&$config, $page=1, $limit=-1)
 
 	fclose($db_fp);
 
-	if($config['log']) _csvdb_log($config, "Read [r_id: " . join($r_ids, ', ') . ']');
+	_csvdb_log($config, "read [r_id: " . join($r_ids, ', ') . ']');
 
 	return $records;
 }
@@ -193,7 +193,7 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 
 	// Cache busting, if search_fn is false, to regenerate cache in the next run
 	if($search_fn === false){
-		if($config['log']) _csvdb_log($config, "Deleted file");
+		_csvdb_log($config, "deleted file " . basename($cache_tablename, '.csv'));
 
 		unlink($cache_filepath);
 		return;
@@ -223,7 +223,7 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 		}
 		fclose($fp);
 
-		if($config['log']) _csvdb_log($config, "Created file");
+		_csvdb_log($config, "created file " . basename($cache_tablename, '.csv'));
 	}
 
 	$fp = fopen($cache_filepath, 'r');
@@ -363,7 +363,7 @@ function _csvdb_write_record($db_fp, &$config, $values)
 	$values_str = join(',', $values);	
 	if($csv_line_length + $last_value_length + 1 > $config['max_record_length'])
 	{
-		if($config['log']) _csvdb_log($config, "failed to write [$values_str]");
+		_csvdb_log($config, "failed to write [$values_str]");
 		return false;
 	}
 
@@ -371,7 +371,7 @@ function _csvdb_write_record($db_fp, &$config, $values)
 	
 	fputcsv($db_fp, $values);
 
-	if($config['log']) _csvdb_log($config, "wrote [$values_str]");
+	_csvdb_log($config, "wrote [$values_str]");
 	return true;
 }
 
@@ -393,7 +393,7 @@ function _csvdb_csv_arr_str_length($values)
 
 function _csvdb_log(&$config, $message)
 {
-	trigger_error(basename($config['tablename'], ".csv") . ': ' . $message);
+	if($config['log']) trigger_error(basename($config['tablename'], ".csv") . ': ' . $message);
 }
 
 
