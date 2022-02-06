@@ -8,7 +8,7 @@ Project Status: Work in progress
 
 
 
-* ~300lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
+* ~360 lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
 	* PHP natively supports fgetcsv and fputcsv.
 	* No need for additional database software/extensions.
 	* Write your custom functions using CSVDB for each operation similar to SQL statements.
@@ -37,12 +37,17 @@ ef,g,1643121629,1643121629,xxxxx	<- Soft deleted record, r_id: 3
 
 * Does not implement expanding varchar/text field. It is recommended to use regular text files and saving filename in table.
 	* In future this may be a built-in functionality.
-* For a varied column or serialized data, PHP `serialize` can be used in the same table as a column, instead of a new table.
-	* Analogous to `array` or `json` column type in a regular database.
 * Database maintenance like archiving and other operations are manual.
 * **Not tested**, use at your own risk.
 * Please feel free to implement it yourself.
 
+
+## Datatypes
+
+1. Integer
+2. Float
+3. String
+4. JSON
 
 
 ## Example configuration:
@@ -52,7 +57,13 @@ $table_config = [
 	"tablename" => 'csvdb-testdb.csv',
 	"data_dir" => '/tmp',
 	"max_record_length" => 100,
-	"columns" => ["name", "username"],
+	"columns" => [
+					"name"=>"string",
+					"username"=>"string",
+					"lucky_number"=>"int",
+					"float_lucky_number"=>"float",
+					"meta"=>"json"
+				],
 	"validations_callback" => "csvdb_testdb_validations_callback",
 	"auto_timestamps" => true,
 	"log" => true
@@ -144,12 +155,15 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 
 ## TODO:
 
-* Code cleanup
-* test flock
-* Data integrity on power failure
-* Type casting
-* Unique constraint / Search constraint
-* text field
-* More documentation
-* More testing
-* Write a book `Building a database management system`
+[ ] Code cleanup
+[ ] test flock
+[x] Implement arr_getcsv instead of implode
+[x] Validations
+[ ] Data integrity on power failure
+[x] Type casting
+[x] JSON field
+[ ] Unique constraint / Search constraint
+[ ] text field
+[ ] More documentation
+[ ] More testing
+[ ] Write a book `Building a database management system`
