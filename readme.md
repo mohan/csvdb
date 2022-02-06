@@ -58,12 +58,12 @@ $table_config = [
 	"data_dir" => '/tmp',
 	"max_record_length" => 100,
 	"columns" => [
-					"name"=>"string",
-					"username"=>"string",
-					"lucky_number"=>"int",
-					"float_lucky_number"=>"float",
-					"meta"=>"json"
-				],
+		"name"=>"string",
+		"username"=>"string",
+		"lucky_number"=>"int",
+		"float_lucky_number"=>"float",
+		"meta"=>"json"
+	],
 	"validations_callback" => "csvdb_testdb_validations_callback",
 	"auto_timestamps" => true,
 	"log" => true
@@ -155,15 +155,15 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 
 ## TODO:
 
-[ ] Code cleanup
-[ ] test flock
-[x] Implement arr_getcsv instead of implode
-[x] Validations
-[ ] Data integrity on power failure
-[x] Type casting
-[x] JSON field
-[ ] Unique constraint / Search constraint
-[ ] text field
-[ ] More documentation
-[ ] More testing
-[ ] Write a book `Building a database management system`
+* [ ] Code cleanup
+* [ ] test flock
+* [x] Implement arr_getcsv instead of implode
+* [x] Validations
+* [ ] Data integrity on power failure
+* [x] Type casting
+* [x] JSON field
+* [ ] Unique constraint / Search constraint
+* [ ] text field
+* [ ] More documentation
+* [ ] More testing
+* [ ] Write a book `Building a database management system`
