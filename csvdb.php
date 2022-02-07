@@ -288,13 +288,10 @@ function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
 
 	$j = 0;
 	foreach ($config['columns'] as $column=>$type) {
-		switch($type){
-			case 'int': $record[$column] = intval($raw_record[$j++]); break;
-			case 'float': $record[$column] = floatval($raw_record[$j++]); break;
-			case 'json': $record[$column] = json_decode($raw_record[$j++], true); break;
-			default:  $record[$column] = $raw_record[$j++]; break;
-		}
+		$record[$column] = $raw_record[$j++];
 	}
+
+	_csvdb_typecast_values($config, $record);
 
 	if($config['auto_timestamps']){
 		$record['created_at'] = $raw_record[$j++];
@@ -338,7 +335,7 @@ function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 				$values[$column] = $record[$i++];
 			}
 			foreach ($partial_update_values as $column => $value) {
-				$values[$column] = is_array($value) ? json_encode($value) : $value;
+				$values[$column] = $value;
 			}
 		}
 
@@ -363,10 +360,7 @@ function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 // Related to the above function
 function _csvdb_write_record($db_fp, &$config, $values)
 {
-	foreach ($values as $key => $value) {
-		if(is_array($value)) $values[$key] = json_encode($value);
-	}
-
+	_csvdb_stringify_values($config, $values);
 	$csv_line_length = _csvdb_csv_arr_str_length($values);
 	$last_value_length = $config['max_record_length'] - $csv_line_length - 1;
 
@@ -383,6 +377,34 @@ function _csvdb_write_record($db_fp, &$config, $values)
 
 	_csvdb_log($config, "wrote [$values_str]");
 	return true;
+}
+
+
+// Typecast values to string
+function _csvdb_stringify_values(&$config, &$values)
+{
+	foreach ($config['columns'] as $column => $type) {
+		switch($type){
+			case 'bool': $values[$column] = $values[$column] ? 1 : 0; break;
+			case 'int': $values[$column] = is_int($values[$column]) ? $values[$column] : ''; break;
+			case 'float': $values[$column] = is_float($values[$column]) ? $values[$column] : ''; break;
+			case 'json': $values[$column] = is_array($values[$column]) ? json_encode($values[$column], true) : ''; break;
+		}
+	}
+}
+
+
+// Typecast values to type
+function _csvdb_typecast_values(&$config, &$values)
+{
+	foreach ($config['columns'] as $column => $type) {
+		switch($type){
+			case 'bool': $values[$column] = boolval($values[$column]); break;
+			case 'int': $values[$column] = intval($values[$column]); break;
+			case 'float': $values[$column] = floatval($values[$column]); break;
+			case 'json': $values[$column] = json_decode($values[$column], true); break;
+		}
+	}
 }
 
 
@@ -433,12 +455,13 @@ function test_csvdb( )
 		"data_dir" => sys_get_temp_dir(),
 		"max_record_length" => 100,
 		"columns" => [
-						"name"=>"string",
-						"username"=>"string",
-						"lucky_number"=>"int",
-						"float_lucky_number"=>"float",
-						"meta"=>"json"
-					],
+			"name"=>"string",
+			"username"=>"string",
+			"has_attr"=>"bool",
+			"lucky_number"=>"int",
+			"float_lucky_number"=>"float",
+			"meta"=>"json"
+		],
 		"validations_callback" => "csvdb_test_validations_callback",
 		"auto_timestamps" => true,
 		"log" => true
@@ -468,16 +491,16 @@ function test_csvdb( )
 	csvdb_create_record($config, ["a", "b"]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create_record index array - row length", strlen($csv_contents) == 101);
-	t("csvdb_create_record index array - correct data", strpos($csv_contents, "a,b,---") == 0);
+	t("csvdb_create_record index array - correct data", strpos($csv_contents, "a,b,0,,,,") == 0);
 
 
 	$record = csvdb_read_record($config, 1);
 	t("csvdb_read_record", $record['r_id'] == 1 && $record['name'] == 'a' && $record['username'] == 'b');
 
-	csvdb_create_record($config, ["c", "d", "e", "f", "g", "h", "i"]);
+	csvdb_create_record($config, ["c", "d", "e", "f", "g", "h", "i", "j"]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create_record index array - row length", strlen($csv_contents) == 202);
-	t("csvdb_create_record index array - correct data", strpos($csv_contents, "c,d,e,f,g,h", 101) === false);
+	t("csvdb_create_record index array - correct data", strpos($csv_contents, "c,d,e,f,g,h,i", 101) === false);
 	t("csvdb_create_record index array - correct data", strpos($csv_contents, "c,d,", 101) == 101);
 
 
@@ -485,14 +508,15 @@ function test_csvdb( )
 	t("csvdb_read_record", $record['r_id'] == 2 && $record['name'] == 'c' && $record['username'] == 'd');
 
 
-	csvdb_create_record($config, [name=>"a-id", username=>"example-user", lucky_number=>7, float_lucky_number=>8.7, meta=>[a=>1, b=>2, c=>3]]);
+	csvdb_create_record($config, [name=>"a-id", username=>"example-user", has_attr=>false, lucky_number=>7, float_lucky_number=>8.7, meta=>[a=>1, b=>2, c=>3]]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create_record - row length", strlen($csv_contents) == 303);
-	t("csvdb_create_record - correct data", strpos($csv_contents, "a-id,example-user,7,8.7,\"{\"\"a") == 202);
+	t("csvdb_create_record - correct data", strpos($csv_contents, "a-id,example-user,0,7,8.7,\"{\"\"a") == 202);
 
 
 	$record = csvdb_read_record($config, 3);
 	t("csvdb_read_record", $record['r_id'] == 3 && $record['name'] == 'a-id' && $record['username'] == 'example-user' &&
+							is_bool($record['has_attr']) && $record['has_attr'] === false &&
 							is_int($record['lucky_number']) && $record['lucky_number'] == 7 &&
 							is_float($record['float_lucky_number']) && $record['float_lucky_number'] == 8.7 &&
 							$record['meta'] && $record['meta']['a'] == 1 && $record['meta']['b'] == 2 && $record['meta']['c'] == 3
@@ -531,7 +555,7 @@ function test_csvdb( )
 	csvdb_create_record($config, [name=>"f", username=>"f-user"]);
 	csvdb_delete_record($config, 8, true);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_delete_record - hard delete", strpos($csv_contents, ",,,,,,,XXXXXXX", 707) == 707);
+	t("csvdb_delete_record - hard delete", strpos($csv_contents, ",,,,,,,,XXXXXXX", 707) == 707);
 	t("csvdb_read_record - hard deleted record", csvdb_read_record($config, 8) === false);
 
 
