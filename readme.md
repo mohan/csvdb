@@ -57,7 +57,7 @@ ef,g,1643121629,1643121629,xxxxx	<- Soft deleted record, r_id: 3
 $table_config = [
 	"tablename" => 'csvdb-testdb.csv',
 	"data_dir" => '/tmp',
-	"max_record_length" => 100,
+	"max_record_width" => 100,
 	"columns" => [
 		"name"=>"string",
 		"username"=>"string",

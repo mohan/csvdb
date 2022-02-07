@@ -5,7 +5,7 @@
 3. Functional programming only.
 4. Prefix function names according to their group name.
 5. Internal functions (private to a group) must be prefixed with an underscore followed by the group prefix.
-6. Internal functions must be at the end of all regular functions.
+6. Internal functions must be at the end of all regular functions of a group.
 7. Use comment blocks to signify group start and group end.
 8. Use an associative array for all group variables for sharing within the function group.
 9. Pass by reference the group variables array to each function, or make it a global variable with the group prefix.

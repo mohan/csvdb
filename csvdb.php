@@ -21,7 +21,7 @@
  $config = [
 	"data_dir" => '/tmp',
 	"tablename" => 'csvdb-testdb.csv',
-	"max_record_length" => 100,
+	"max_record_width" => 100,
 	"columns" => ["name"=>"string", "username"=>"string", "lucky_number"=>"int", "float_lucky_number"=>"float", "meta"=>"json"],
 	"auto_timestamps" => true,
 	"log" => true
@@ -135,14 +135,14 @@ function csvdb_delete_record(&$config, $r_id, $hard_delete=false)
 	if($hard_delete){
 		$total_fields = sizeof($config['columns']) + ($config['auto_timestamps'] ? 2 : 0);
 		for($i=0; $i < $total_fields; $i++) $values[] = '';
-		$values[] = str_repeat('X', $config['max_record_length'] - $total_fields);
+		$values[] = str_repeat('X', $config['max_record_width'] - $total_fields);
 
 		fputcsv($db_fp, $values);
 	} else {
-		$raw_record = fread($db_fp, $config['max_record_length']);
+		$raw_record = fread($db_fp, $config['max_record_width']);
 
 		$flag_start = strrpos($raw_record, ",-") + 1;
-		$delete_flag = str_repeat('x', $config['max_record_length'] - $flag_start);
+		$delete_flag = str_repeat('x', $config['max_record_width'] - $flag_start);
 
 		fseek($db_fp, $record_position_id + $flag_start);
 		fwrite($db_fp, $delete_flag);
@@ -159,7 +159,7 @@ function csvdb_list_records(&$config, $page=1, $limit=-1)
 
 	// First r_id
 	$r_id = ( $limit == -1 ? 0 : 
-				(($page - 1) * $limit * ($config['max_record_length'] + 1)) / ($config['max_record_length'] + 1)
+				(($page - 1) * $limit * ($config['max_record_width'] + 1)) / ($config['max_record_width'] + 1)
 			) + 1;
 
 	$db_fp = fopen($csv_filepath, 'r');
@@ -236,7 +236,7 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 	$search_results_config = [
 		'data_dir' => $config['data_dir'],
 		'tablename' => $cache_tablename,
-		'max_record_length' => strlen($columns_str) - 1,
+		'max_record_width' => strlen($columns_str) - 1,
 		'columns' => $columns,
 		'log' => $config['log']
 	];
@@ -256,14 +256,14 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 // Checks if config is valid and returns filepath
 function _csvdb_is_valid_config(&$config)
 {
-	return !$config || !$config['max_record_length'] || !$config['columns'] ? false : $config['data_dir'] . '/' . $config['tablename'];
+	return !$config || !$config['max_record_width'] || !$config['columns'] ? false : $config['data_dir'] . '/' . $config['tablename'];
 }
 
 
 // Seek fp to record_id position
 function _csvdb_seek_id(&$config, $db_fp, $r_id)
 {
-	$r_id_position = ($r_id - 1) * $config['max_record_length'] + ($r_id - 1);
+	$r_id_position = ($r_id - 1) * $config['max_record_width'] + ($r_id - 1);
 	fseek($db_fp, $r_id_position);
 
 	return $r_id_position;
@@ -362,10 +362,10 @@ function _csvdb_write_record($db_fp, &$config, $values)
 {
 	_csvdb_stringify_values($config, $values);
 	$csv_line_length = _csvdb_csv_arr_str_length($values);
-	$last_value_length = $config['max_record_length'] - $csv_line_length - 1;
+	$last_value_length = $config['max_record_width'] - $csv_line_length - 1;
 
 	$values_str = join(',', $values);	
-	if($csv_line_length + $last_value_length + 1 > $config['max_record_length'])
+	if($csv_line_length + $last_value_length + 1 > $config['max_record_width'])
 	{
 		_csvdb_log($config, "failed to write [$values_str]");
 		return false;
@@ -388,7 +388,7 @@ function _csvdb_stringify_values(&$config, &$values)
 			case 'bool': $values[$column] = $values[$column] ? 1 : 0; break;
 			case 'int': $values[$column] = is_int($values[$column]) ? $values[$column] : ''; break;
 			case 'float': $values[$column] = is_float($values[$column]) ? $values[$column] : ''; break;
-			case 'json': $values[$column] = is_array($values[$column]) ? json_encode($values[$column], true) : ''; break;
+			case 'json': $values[$column] = is_array($values[$column]) ? json_encode($values[$column]) : ''; break;
 		}
 	}
 }
@@ -453,7 +453,7 @@ function test_csvdb( )
 	$config = [
 		"tablename" => 'csvdb-testdb-123456789.csv',
 		"data_dir" => sys_get_temp_dir(),
-		"max_record_length" => 100,
+		"max_record_width" => 100,
 		"columns" => [
 			"name"=>"string",
 			"username"=>"string",
