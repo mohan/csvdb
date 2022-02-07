@@ -8,7 +8,7 @@ Project Status: Work in progress
 
 
 
-* ~360 lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
+* ~400 lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
 	* PHP natively supports fgetcsv and fputcsv.
 	* No need for additional database software/extensions.
 	* Write your custom functions using CSVDB for each operation similar to SQL statements.
@@ -19,7 +19,7 @@ Project Status: Work in progress
 	* Writes are fast, but a regular database is recommended for a write updates centric application.
 * Implements `search` function with caching, analogous to database index.
 	* Secondary keys like a custom id (hash or number) can be implemented using this.
-* Supports auto timestamps for `created_at` and `updated_at` fields.
+* Supports auto timestamps for `created_at` and `updated_at` columns.
 * Supports restorable soft delete and complete hard delete.
 * Built-in logging for tracking changes.
 
@@ -35,9 +35,7 @@ ef,g,1643121629,1643121629,xxxxx	<- Soft deleted record, r_id: 3
 
 ## Note
 
-* Does not implement expanding varchar/text field. It is recommended to use regular text files and saving filename in table.
-	* In future this may be a built-in functionality.
-* Database maintenance like archiving and other operations are manual.
+* Database maintenance like backup, archiving and other operations are manual.
 * **Not tested**, use at your own risk.
 * Please feel free to implement it yourself.
 
@@ -45,10 +43,19 @@ ef,g,1643121629,1643121629,xxxxx	<- Soft deleted record, r_id: 3
 ## Datatypes
 
 1. Integer
+	Integer numbers.
 2. Float
+	Floating point numbers.
 3. Boolean
+	`true` or `false` boolean value.
 4. String
+	Regular string, analogous to varchar.
 5. JSON
+	Indexed array or key value array with support for nesting.
+6. Text
+	Flexible string of unknown length.
+	Stored as a text file with a predictable filename (Ex: `$r_id-$column_name`).
+	Filename/reference is not stored in CSV file. So, CSV file will not contain this column.
 
 
 ## Example configuration:
@@ -64,7 +71,8 @@ $table_config = [
 		"has_attr"=>"bool",
 		"lucky_number"=>"int",
 		"float_lucky_number"=>"float",
-		"meta"=>"json"
+		"meta"=>"json",
+		"notes"=>"text"
 	],
 	"validations_callback" => "csvdb_testdb_validations_callback",
 	"auto_timestamps" => true,
@@ -86,7 +94,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 ## Available functions
 
  1. csvdb_create_table($config)
- 	* Creates an empty table CSV file and the cache folder.
+ 	* Creates an empty table CSV file, the text column folder and the cache folder.
 
  2. csvdb_create_record($config, $values)
  	* Adds a new record at the end.
@@ -95,6 +103,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 
  3. csvdb_read_record($config, $r_id)
  	* Return associative array of the record at r_id.
+ 	* Returns 0 for soft-deleted record, and false for hard-deleted.
 
  4. csvdb_update_record($config, $r_id, $values, $partial_update=false)
  	* Update a record at record at r_id.
@@ -158,15 +167,15 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 ## TODO:
 
 * [ ] Code cleanup
+* [ ] Data integrity on power failure
 * [ ] test flock
 * [x] Implement arr_getcsv instead of implode
 * [x] Validations
-* [ ] Data integrity on power failure
 * [x] Type casting (stringify and typecast)
-* [x] JSON field
-* [x] Boolean field
+* [x] JSON column
+* [x] Boolean column
+* [x] Text column
 * [ ] Unique constraint / Search constraint
-* [ ] text field
 * [ ] More documentation
 * [ ] More testing
 * [ ] Write a book `Building a database management system`

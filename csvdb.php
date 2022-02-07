@@ -12,10 +12,12 @@
  2. csvdb_create_record($config, $values)
  3. csvdb_read_record($config, $r_id)
  4. csvdb_update_record($config, $r_id, $values, $partial_update=false)
- 5. csvdb_delete_record($config, $r_id, $hard_delete=false)
- 6. csvdb_list_records($config, $page=1, $limit=-1)
- 7. csvdb_fetch_records($config, $r_ids)
- 8. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
+ 5. csvdb_update_text_column($config, $r_id, $column_name, $text)
+ 6. csvdb_read_text_column($config, $r_id, $column_name, $truncate=-1)
+ 7. csvdb_delete_record($config, $r_id, $hard_delete=false)
+ 8. csvdb_list_records($config, $page=1, $limit=-1)
+ 9. csvdb_fetch_records($config, $r_ids)
+ 10. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
 
  Example configuration:
  $config = [
@@ -38,6 +40,7 @@ function csvdb_create_table(&$config)
 	_csvdb_log($config, "created file");
 
 	if(!is_dir($config['data_dir'] . '/__csvdb_cache')) mkdir($config['data_dir'] . '/__csvdb_cache');
+	if(!is_dir($config['data_dir'] . '/__csvdb_text')) mkdir($config['data_dir'] . '/__csvdb_text');
 	return touch($csv_filepath);
 }
 
@@ -68,7 +71,7 @@ function csvdb_fetch_records(&$config, $r_ids)
 
 	fclose($db_fp);
 
-	_csvdb_log($config, "read [r_id: " . join(', ', $r_ids) . "]");
+	_csvdb_log($config, "read [r_id: " . join(',', $r_ids) . "]");
 
 	return $records;
 }
@@ -121,6 +124,35 @@ function csvdb_update_record(&$config, $r_id, $values, $partial_update=false)
 }
 
 
+// Update text column of a record
+function csvdb_update_text_column(&$config, $r_id, $column_name, $text)
+{
+	if(!array_key_exists($column_name, $config['columns']) || !text || !is_string($text)) return false;
+	if(!csvdb_read_record($config, $r_id)) return false;
+
+	if( !call_user_func($config['validations_callback'], $r_id, [$column_name => $text], $config) ){
+		return false;
+	}
+
+	_csvdb_log($config, "update $column_name text [r_id: $r_id]");
+	file_put_contents(_csvdb_text_filepath($config, $r_id, $column_name), $text);
+
+	return true;
+}
+
+
+// Read text column of a record
+function csvdb_read_text_column(&$config, $r_id, $column_name, $truncate=NULL)
+{
+	if(!array_key_exists($column_name, $config['columns'])) return false;
+	if(!csvdb_read_record($config, $r_id)) return false;
+
+	_csvdb_log($config, "read $column_name text [r_id: $r_id]");
+	// Todo: truncate
+	return file_get_contents(_csvdb_text_filepath($config, $r_id, $column_name), false, null, 0);
+}
+
+
 // Delete record from CSV
 function csvdb_delete_record(&$config, $r_id, $hard_delete=false)
 {
@@ -133,11 +165,20 @@ function csvdb_delete_record(&$config, $r_id, $hard_delete=false)
 	if($record_position_id === false) return false;
 
 	if($hard_delete){
-		$total_fields = sizeof($config['columns']) + ($config['auto_timestamps'] ? 2 : 0);
-		for($i=0; $i < $total_fields; $i++) $values[] = '';
-		$values[] = str_repeat('X', $config['max_record_width'] - $total_fields);
+		$total_columns = sizeof($config['columns']) + ($config['auto_timestamps'] ? 2 : 0);
+		for($i=0; $i < $total_columns; $i++) $values[] = '';
+		$values[] = str_repeat('X', $config['max_record_width'] - $total_columns);
 
 		fputcsv($db_fp, $values);
+
+		foreach ($config['columns'] as $column_name => $type) {
+			if($type != 'text') continue;
+			$text_file_path = _csvdb_text_filepath($config, $r_id, $column_name);
+			if(file_exists($text_file_path)){
+				_csvdb_log($config, "delete $column_name text [r_id: $r_id]");
+				unlink($text_file_path);
+			}
+		}
 	} else {
 		$raw_record = fread($db_fp, $config['max_record_width']);
 
@@ -177,7 +218,7 @@ function csvdb_list_records(&$config, $page=1, $limit=-1)
 
 	fclose($db_fp);
 
-	_csvdb_log($config, "read [r_id: " . join($r_ids, ', ') . ']');
+	_csvdb_log($config, "read [r_id: " . join($r_ids, ',') . ']');
 
 	return $records;
 }
@@ -280,7 +321,8 @@ function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
 
 	$delete_flag = array_pop($raw_record);
 
-	if($delete_flag[0] != '-') return false;
+	if($delete_flag[0] == 'x') return 0;
+	if($delete_flag[0] == 'X') return false;
 
 	$record = [
 		'r_id' => $r_id
@@ -364,7 +406,7 @@ function _csvdb_write_record($db_fp, &$config, $values)
 	$csv_line_length = _csvdb_csv_arr_str_length($values);
 	$last_value_length = $config['max_record_width'] - $csv_line_length - 1;
 
-	$values_str = join(',', $values);	
+	$values_str = join(',', $values);
 	if($csv_line_length + $last_value_length + 1 > $config['max_record_width'])
 	{
 		_csvdb_log($config, "failed to write [$values_str]");
@@ -389,6 +431,7 @@ function _csvdb_stringify_values(&$config, &$values)
 			case 'int': $values[$column] = is_int($values[$column]) ? $values[$column] : ''; break;
 			case 'float': $values[$column] = is_float($values[$column]) ? $values[$column] : ''; break;
 			case 'json': $values[$column] = is_array($values[$column]) ? json_encode($values[$column]) : ''; break;
+			case 'text': unset($values[$column]); break; // No need to store in table
 		}
 	}
 }
@@ -405,6 +448,12 @@ function _csvdb_typecast_values(&$config, &$values)
 			case 'json': $values[$column] = json_decode($values[$column], true); break;
 		}
 	}
+}
+
+
+function _csvdb_text_filepath(&$config, $r_id, $column_name)
+{
+	return $config['data_dir'] . "/__csvdb_text/" . "$r_id-$column_name";
 }
 
 
@@ -460,7 +509,8 @@ function test_csvdb( )
 			"has_attr"=>"bool",
 			"lucky_number"=>"int",
 			"float_lucky_number"=>"float",
-			"meta"=>"json"
+			"meta"=>"json",
+			"notes"=>"text"
 		],
 		"validations_callback" => "csvdb_test_validations_callback",
 		"auto_timestamps" => true,
@@ -546,17 +596,31 @@ function test_csvdb( )
 	t("csvdb_update_record - partial_update", strpos($csv_contents, "c-id,c-user-partial-updated,", 404) == 404);
 
 
+	// Soft delete
 	csvdb_create_record($config, [name=>"e", username=>"e-user"]);
+	// Text column
+	csvdb_update_text_column($config, 7, 'notes', 'This is an example note...');
+	t("csvdb_read_text_column", csvdb_read_text_column($config, 7, 'notes') == 'This is an example note...');
 	csvdb_delete_record($config, 7);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_delete_record - soft delete", strpos($csv_contents, ",xxxxx", 606) > 606);
-	t("csvdb_read_record - soft deleted record", csvdb_read_record($config, 7) === false);
+	t("csvdb_read_record - soft deleted record", csvdb_read_record($config, 7) === 0);
+	t("csvdb_read_text_column", csvdb_read_text_column($config, 7, 'notes') === false &&
+							file_exists(_csvdb_text_filepath($config, 7, 'notes')) === true
+							);
 
+	// Hard delete
 	csvdb_create_record($config, [name=>"f", username=>"f-user"]);
+	// Text column
+	csvdb_update_text_column($config, 8, 'notes', 'This is an example note...');
+	t("csvdb_read_text_column", csvdb_read_text_column($config, 8, 'notes') == 'This is an example note...');
 	csvdb_delete_record($config, 8, true);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_delete_record - hard delete", strpos($csv_contents, ",,,,,,,,XXXXXXX", 707) == 707);
+	t("csvdb_delete_record - hard delete", strpos($csv_contents, ",,,,,,,,,XXXXXXX", 707) == 707);
 	t("csvdb_read_record - hard deleted record", csvdb_read_record($config, 8) === false);
+	t("csvdb_read_text_column", csvdb_read_text_column($config, 8, 'notes') === false &&
+								file_exists(_csvdb_text_filepath($config, 8, 'notes')) === false
+							);
 
 
 	$records = csvdb_list_records($config, 1, 10);
@@ -608,6 +672,7 @@ function test_csvdb( )
 	// Should create cache
 	csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
 	csvdb_search_records($config, 'search_cache_key', false);
+
 
 	echo "<hr>\nRaw CSV file:\n" . file_get_contents($csv_filepath) . "<hr>\n";
 	unlink($csv_filepath);
