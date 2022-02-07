@@ -162,8 +162,9 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * [x] Implement arr_getcsv instead of implode
 * [x] Validations
 * [ ] Data integrity on power failure
-* [x] Type casting
+* [x] Type casting (stringify and typecast)
 * [x] JSON field
+* [x] Boolean field
 * [ ] Unique constraint / Search constraint
 * [ ] text field
 * [ ] More documentation
