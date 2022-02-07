@@ -43,19 +43,19 @@ ef,g,1643121629,1643121629,xxxxx	<- Soft deleted record, r_id: 3
 ## Datatypes
 
 1. Integer
-	Integer numbers.
+	* Integer numbers.
 2. Float
-	Floating point numbers.
+	* Floating point numbers.
 3. Boolean
-	`true` or `false` boolean value.
+	* `true` or `false` boolean value.
 4. String
-	Regular string, analogous to varchar.
+	* Regular string, analogous to varchar.
 5. JSON
-	Indexed array or key value array with support for nesting.
+	* Indexed array or key value array with support for nesting.
 6. Text
-	Flexible string of unknown length.
-	Stored as a text file with a predictable filename (Ex: `$r_id-$column_name`).
-	Filename/reference is not stored in CSV file. So, CSV file will not contain this column.
+	* Flexible string of unknown length.
+	* Stored as a text file with a predictable filename (Ex: `$r_id-$column_name`).
+	* Filename/reference is not stored in CSV file. So, CSV file will not contain this column.
 
 
 ## Example configuration:
