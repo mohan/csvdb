@@ -26,10 +26,10 @@ Project Status: Work in progress
 
 Example CSV file:
 ```
-a,bpqrs,1643121629,1643121629,--	<- Record r_id: 1
-c,d,1643121629,1643121629,------	<- Record r_id: 2
-ef,g,1643121629,1643121629,xxxxx	<- Soft deleted record, r_id: 3
-,,,,XXXXXXXXXXXXXXXXXXXXXXXXXXXX	<- Hard deleted record, r_id: 4
+a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1
+c,d,1643121629,1643121629,______	<- Record r_id: 2
+ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
+,,,,___________________________X	<- Hard deleted record, r_id: 4
 ```
 
 
@@ -93,54 +93,54 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 
 ## Available functions
 
- 1. csvdb_create_table($config)
- 	* Creates an empty table CSV file, the text column folder and the cache folder.
+1. csvdb_create_table($config)
+	* Creates an empty table CSV file, the text column folder and the cache folder.
 
- 2. csvdb_create_record($config, $values)
- 	* Adds a new record at the end.
- 	* Accepts either indexed array or associative array.
- 	* Todo: Return new r_id.
+2. csvdb_create_record($config, $values)
+	* Adds a new record at the end.
+	* Accepts either indexed array or associative array.
+	* Todo: Return new r_id.
 
- 3. csvdb_read_record($config, $r_id)
- 	* Return associative array of the record at r_id.
- 	* Returns 0 for soft-deleted record, and false for hard-deleted.
+3. csvdb_read_record($config, $r_id)
+	* Return associative array of the record at r_id.
+	* Returns 0 for soft-deleted record, and false for hard-deleted.
 
- 4. csvdb_update_record($config, $r_id, $values, $partial_update=false)
- 	* Update a record at record at r_id.
- 	* Values can be indexed array or associative array.
- 	* partial_update updates only a single value in the record. (Not implemented efficiently for simplicity.)
- 	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
+4. csvdb_update_record($config, $r_id, $values, $partial_update=false)
+	* Update a record at record at r_id.
+	* Values can be indexed array or associative array.
+	* partial_update updates only a single value in the record. (Not implemented efficiently for simplicity.)
+	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
 
- 5. csvdb_update_text_column($config, $r_id, $column_name, $text)
- 	* Update text column of a record.
+5. csvdb_update_text_column($config, $r_id, $column_name, $text)
+	* Update text column of a record.
 
- 6. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
- 	* Read text column of a record.
- 	* Todo: Truncate not working.
+6. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
+	* Read text column of a record.
+	* Todo: Truncate not working.
 
- 7. csvdb_delete_record($config, $r_id, $hard_delete=false)
- 	* Deletes a record by r_id.
- 	* Default is soft delete, i.e data is not removed and record can be restored.
- 	* With hard delete all values are removed permanently.
- 	* Deleted records remain in the table, for r_ids to remain the same.
+7. csvdb_delete_record($config, $r_id, $hard_delete=false)
+	* Deletes a record by r_id.
+	* Default is soft delete, i.e data is not removed and record can be restored.
+	* With hard delete all values are removed permanently.
+	* Deleted records remain in the table, for r_ids to remain the same.
 
- 8. csvdb_list_records($config, $page=1, $limit=-1)
- 	* Return all records in the table, with pagination if needed.
+8. csvdb_list_records($config, $page=1, $limit=-1)
+	* Return all records in the table, with pagination if needed.
 
- 9. csvdb_fetch_records($config, $r_ids)
- 	* Return multiple records by given r_ids array.
+9. csvdb_fetch_records($config, $r_ids)
+	* Return multiple records by given r_ids array.
 
- 10. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
- 	* `$search_fn` is PHP callable type.
- 	* Search function is called only once with all records from the given table.
- 	* Return an associative array of filtered values.
- 	* All results will be cached and returned as the return value of `csvdb_search_records`.
- 	* For subsequent calls, search function will not be called, as cache exists.
- 	* To remove cache, call with `$search_fn` value `false`.
- 	* This may be used for
- 		* index such as - all r_ids for a user.
- 		* a cached data view.
- 	* More testing is needed for this.
+10. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
+	* `$search_fn` is PHP callable type.
+	* Search function is called only once with all records from the given table.
+	* Return an associative array of filtered values.
+	* All results will be cached and returned as the return value of `csvdb_search_records`.
+	* For subsequent calls, search function will not be called, as cache exists.
+	* To remove cache, call with `$search_fn` value `false`.
+	* This may be used for
+		* index such as - all r_ids for a user.
+		* a cached data view.
+	* More testing is needed for this.
 
 
 
