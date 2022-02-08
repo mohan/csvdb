@@ -116,7 +116,8 @@ function csvdb_update_record(&$config, $r_id, $values, $partial_update=false)
 		$i = 0;
 		foreach($config['columns'] as $column=>$type)
 		{
-			$write_values[$column] = $is_indexed_values ? $values[$i++] : $values[$column];
+			if($type != 'text')
+				$write_values[$column] = $is_indexed_values ? $values[$i++] : $values[$column];
 		}
 
 		return _csvdb_update_record_raw($config, $r_id, $write_values, $partial_update);
@@ -329,7 +330,7 @@ function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
 
 	$j = 0;
 	foreach ($config['columns'] as $column=>$type) {
-		$record[$column] = $raw_record[$j++];
+		if($type != 'text') $record[$column] = $raw_record[$j++];
 	}
 
 	_csvdb_typecast_values($config, $record);
@@ -337,6 +338,11 @@ function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
 	if($config['auto_timestamps']){
 		$record['created_at'] = $raw_record[$j++];
 		$record['updated_at'] = $raw_record[$j++];
+	}
+
+	if($config['transformations_callback']) {
+		$transformed_record = call_user_func($config['transformations_callback'], $record, $config);
+		$record = array_merge($record, $transformed_record);
 	}
 
 	return $record;
@@ -373,7 +379,7 @@ function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 			$values = [];
 			$i = 0;
 			foreach ($config['columns'] as $column => $type) {
-				$values[$column] = $record[$i++];
+				if($type != 'text') $values[$column] = $record[$i++];
 			}
 			foreach ($partial_update_values as $column => $value) {
 				$values[$column] = $value;
@@ -448,17 +454,12 @@ function _csvdb_typecast_values(&$config, &$values)
 			case 'text': unset($values[$column]); break; // Not stored in table
 		}
 	}
-
-	if($config['transformations_callback']) {
-		$transformed_values = call_user_func($config['transformations_callback'], $values, $config);
-		$values = array_merge($values, $transformed_values);
-	}
 }
 
 
 function _csvdb_text_filepath(&$config, $r_id, $column_name)
 {
-	return $config['data_dir'] . "/__csvdb_text/" . "$r_id-$column_name";
+	return $config['data_dir'] . "/__csvdb_text/" .  $config['tablename'] . "-$column_name-$r_id";
 }
 
 
@@ -470,7 +471,7 @@ function _csvdb_csv_arr_str_length($values)
 		$i += strlen($value);
 		$i += substr_count($value, "\""); // Double quote escape, Count twice, escape chars
 
-		if(strpos($value, "\"") !== false) $i += 2; // enclosure ""
+		if(strpos($value, "\"") !== false || strpos($value, "[") !== false) $i += 2; // enclosure "" or [
 
 		$i++; // ,
 	}
@@ -604,7 +605,7 @@ function test_csvdb( )
 
 
 	// Soft delete
-	csvdb_create_record($config, [name=>"e", username=>"e-user"]);
+	csvdb_create_record($config, [name=>"e", username=>"e-user", meta=>[1,2,3]]);
 	// Text column
 	csvdb_update_text_column($config, 7, 'notes', 'This is an example note...');
 	t("csvdb_read_text_column", csvdb_read_text_column($config, 7, 'notes') == 'This is an example note...');

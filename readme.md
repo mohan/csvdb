@@ -176,6 +176,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * [ ] Code cleanup
 * [ ] Data integrity on power failure
 * [ ] test flock
+* [ ] Global common config
 * [x] Implement arr_getcsv instead of implode
 * [x] Validations
 * [x] Type casting (stringify and typecast)
@@ -187,3 +188,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * [ ] More documentation
 * [ ] More testing
 * [ ] Write a book `Building a database management system`
+
+
+## Issues
+* [x] Skip text column added to record
