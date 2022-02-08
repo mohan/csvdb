@@ -13,7 +13,7 @@
  3. csvdb_read_record($config, $r_id)
  4. csvdb_update_record($config, $r_id, $values, $partial_update=false)
  5. csvdb_update_text_column($config, $r_id, $column_name, $text)
- 6. csvdb_read_text_column($config, $r_id, $column_name, $truncate=-1)
+ 6. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
  7. csvdb_delete_record($config, $r_id, $hard_delete=false)
  8. csvdb_list_records($config, $page=1, $limit=-1)
  9. csvdb_fetch_records($config, $r_ids)
@@ -127,7 +127,7 @@ function csvdb_update_record(&$config, $r_id, $values, $partial_update=false)
 // Update text column of a record
 function csvdb_update_text_column(&$config, $r_id, $column_name, $text)
 {
-	if(!array_key_exists($column_name, $config['columns']) || !text || !is_string($text)) return false;
+	if(!array_key_exists($column_name, $config['columns']) || $config['columns'][$column_name] != 'text' || !is_string($text)) return false;
 	if(!csvdb_read_record($config, $r_id)) return false;
 
 	if( !call_user_func($config['validations_callback'], $r_id, [$column_name => $text], $config) ){
@@ -144,11 +144,10 @@ function csvdb_update_text_column(&$config, $r_id, $column_name, $text)
 // Read text column of a record
 function csvdb_read_text_column(&$config, $r_id, $column_name, $truncate=NULL)
 {
-	if(!array_key_exists($column_name, $config['columns'])) return false;
+	if(!array_key_exists($column_name, $config['columns']) || $config['columns'][$column_name] != 'text') return false;
 	if(!csvdb_read_record($config, $r_id)) return false;
 
 	_csvdb_log($config, "read $column_name text [r_id: $r_id]");
-	// Todo: truncate
 	return file_get_contents(_csvdb_text_filepath($config, $r_id, $column_name), false, null, 0);
 }
 

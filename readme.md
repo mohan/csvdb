@@ -111,19 +111,26 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
  	* partial_update updates only a single value in the record. (Not implemented efficiently for simplicity.)
  	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
 
- 5. csvdb_delete_record($config, $r_id, $hard_delete=false)
+ 5. csvdb_update_text_column($config, $r_id, $column_name, $text)
+ 	* Update text column of a record.
+
+ 6. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
+ 	* Read text column of a record.
+ 	* Todo: Truncate not working.
+
+ 7. csvdb_delete_record($config, $r_id, $hard_delete=false)
  	* Deletes a record by r_id.
  	* Default is soft delete, i.e data is not removed and record can be restored.
  	* With hard delete all values are removed permanently.
  	* Deleted records remain in the table, for r_ids to remain the same.
 
- 6. csvdb_list_records($config, $page=1, $limit=-1)
+ 8. csvdb_list_records($config, $page=1, $limit=-1)
  	* Return all records in the table, with pagination if needed.
 
- 7. csvdb_fetch_records($config, $r_ids)
+ 9. csvdb_fetch_records($config, $r_ids)
  	* Return multiple records by given r_ids array.
 
- 8. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
+ 10. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
  	* `$search_fn` is PHP callable type.
  	* Search function is called only once with all records from the given table.
  	* Return an associative array of filtered values.
