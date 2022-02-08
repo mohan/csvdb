@@ -182,6 +182,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * [x] JSON column
 * [x] Boolean column
 * [x] Text column
+* [x] Record transformations callback (Add/remove/modify values before returning)
 * [ ] Unique constraint / Search constraint
 * [ ] More documentation
 * [ ] More testing

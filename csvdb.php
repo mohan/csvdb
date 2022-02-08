@@ -445,7 +445,13 @@ function _csvdb_typecast_values(&$config, &$values)
 			case 'int': $values[$column] = intval($values[$column]); break;
 			case 'float': $values[$column] = floatval($values[$column]); break;
 			case 'json': $values[$column] = json_decode($values[$column], true); break;
+			case 'text': unset($values[$column]); break; // Not stored in table
 		}
+	}
+
+	if($config['transformations_callback']) {
+		$transformed_values = call_user_func($config['transformations_callback'], $values, $config);
+		$values = array_merge($values, $transformed_values);
 	}
 }
 
@@ -512,6 +518,7 @@ function test_csvdb( )
 			"notes"=>"text"
 		],
 		"validations_callback" => "csvdb_test_validations_callback",
+		"transformations_callback" => "csvdb_test_transformations_callback",
 		"auto_timestamps" => true,
 		"log" => true
 	];
@@ -568,7 +575,8 @@ function test_csvdb( )
 							is_bool($record['has_attr']) && $record['has_attr'] === false &&
 							is_int($record['lucky_number']) && $record['lucky_number'] == 7 &&
 							is_float($record['float_lucky_number']) && $record['float_lucky_number'] == 8.7 &&
-							$record['meta'] && $record['meta']['a'] == 1 && $record['meta']['b'] == 2 && $record['meta']['c'] == 3
+							$record['meta'] && $record['meta']['a'] == 1 && $record['meta']['b'] == 2 && $record['meta']['c'] == 3 &&
+							!array_key_exists('notes', $record)
 						);
 
 	csvdb_create_record($config, [name=>"b-id", username=>"example2-user", "c", "d", "e", "f", "e"]);
@@ -672,6 +680,9 @@ function test_csvdb( )
 	csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
 	csvdb_search_records($config, 'search_cache_key', false);
 
+	// Transformations
+	$record = csvdb_read_record($config, 1);
+	t("transformations_callback", $record['computed_value'] == 'b - a');
 
 	echo "<hr>\nRaw CSV file:\n" . file_get_contents($csv_filepath) . "<hr>\n";
 	unlink($csv_filepath);
@@ -700,6 +711,14 @@ function csvdb_test_validations_callback($r_id, $values, $config)
 	// if($r_id > 3) return false;
 
 	return true;
+}
+
+
+function csvdb_test_transformations_callback($values, $config)
+{
+	return [
+		'computed_value' => $values['username'] . ' - ' . $values['name']
+	];
 }
 
 
