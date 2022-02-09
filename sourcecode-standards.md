@@ -2,7 +2,7 @@
 
 1. Close compatibility with C language. (PHP is C like).
 2. Must be easy to port to C language.
-3. Functional programming only.
+3. Functional programming only. (Only required learning, function and variable).
 4. Prefix function names according to their group name.
 5. Internal functions (private to a group) must be prefixed with an underscore followed by the group prefix.
 6. Internal functions must be at the end of all regular functions of a group.

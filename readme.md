@@ -10,15 +10,15 @@ Project Status: Work in progress
 
 * ~400 lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
 	* PHP natively supports fgetcsv and fputcsv.
-	* No need for additional database software/extensions.
+	* No additional database software/extensions needed.
 	* Write your custom functions using CSVDB for each operation similar to SQL statements.
 * Implements `fixed width record` style.
-	* Seeking records is fast, as `record_ids (r_id)` are predictable (just a multiplier of record width).
+	* Seeking records is fast, as `record_ids (r_id)` are predictable (a multiplier of record width).
 * Fast for read operations (0s latency).
 	* Uses classic `fopen` instead of traditional sockets as in a regular database.
-	* Writes are fast, but a regular database is recommended for a write updates centric application.
+	* Writes are fast. For a write updates centric application a regular database is recommended.
 * Implements `search` function with caching, analogous to database index.
-	* Secondary keys like a custom id (hash or number) can be implemented using this.
+	* Secondary keys like a custom id (hash or number) may be implemented using this.
 * Supports auto timestamps for `created_at` and `updated_at` columns.
 * Supports restorable soft delete and complete hard delete.
 * Built-in logging for tracking changes.
@@ -56,6 +56,7 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 	* Flexible string of unknown length.
 	* Stored as a text file with a predictable filename (Ex: `$r_id-$column_name`).
 	* Filename/reference is not stored in CSV file. So, CSV file will not contain this column.
+	* Available in full version.
 
 
 ## Example configuration:
@@ -93,45 +94,54 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 
 ## Available functions
 
-1. csvdb_create_table($config)
-	* Creates an empty table CSV file, the text column folder and the cache folder.
+### Core (csvdb-core.php)
 
-2. csvdb_create_record($config, $values)
+This is the core of CSVDB. It only implements essential CRUD functions.
+
+1. csvdb_create_record($config, $values)
 	* Adds a new record at the end.
 	* Accepts either indexed array or associative array.
 	* Todo: Return new r_id.
 
-3. csvdb_read_record($config, $r_id)
+2. csvdb_read_record($config, $r_id)
 	* Return associative array of the record at r_id.
 	* Returns 0 for soft-deleted record, and false for hard-deleted.
 
-4. csvdb_update_record($config, $r_id, $values, $partial_update=false)
+3. csvdb_update_record($config, $r_id, $values, $partial_update=false)
 	* Update a record at record at r_id.
 	* Values can be indexed array or associative array.
 	* partial_update updates only a single value in the record. (Not implemented efficiently for simplicity.)
 	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
 
-5. csvdb_update_text_column($config, $r_id, $column_name, $text)
-	* Update text column of a record.
-
-6. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
-	* Read text column of a record.
-	* Todo: Truncate not working.
-
-7. csvdb_delete_record($config, $r_id, $hard_delete=false)
+4. csvdb_delete_record($config, $r_id, $hard_delete=false)
 	* Deletes a record by r_id.
 	* Default is soft delete, i.e data is not removed and record can be restored.
 	* With hard delete all values are removed permanently.
 	* Deleted records remain in the table, for r_ids to remain the same.
 
-8. csvdb_list_records($config, $page=1, $limit=-1)
+5. csvdb_list_records($config, $page=1, $limit=-1)
 	* Return all records in the table, with pagination if needed.
 
-9. csvdb_fetch_records($config, $r_ids)
+6. csvdb_fetch_records($config, $r_ids)
 	* Return multiple records by given r_ids array.
 
-10. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1)
-	* `$search_fn` is PHP callable type.
+
+### Full (csvdb.php)
+
+This version contains the full functionality of csvdb. Core is included in this.
+
+1. csvdb_create_table($config)
+	* Creates an empty table CSV file, the text column folder and the cache folder.
+
+2. csvdb_update_text_column($config, $r_id, $column_name, $text)
+	* Update text column of a record.
+
+3. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
+	* Read text column of a record.
+	* Todo: Truncate not working.
+
+4. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
+	* $search_fn is PHP callable type.
 	* Search function is called only once with all records from the given table.
 	* Return an associative array of filtered values.
 	* All results will be cached and returned as the return value of `csvdb_search_records`.
@@ -141,6 +151,33 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 		* index such as - all r_ids for a user.
 		* a cached data view.
 	* More testing is needed for this.
+
+
+
+
+## TODO:
+
+* [ ] Code cleanup
+* [ ] Data integrity on power failure
+* [ ] test flock
+* [ ] Global common config
+* [x] Implement arr_getcsv instead of implode
+* [x] Validations
+* [x] Type casting (stringify and typecast)
+* [x] JSON column
+* [x] Boolean column
+* [x] Text column
+* [x] Record transformations callback (Add/remove/modify values before returning)
+* [ ] Partial update argument is not needed. Auto-detect.
+* [ ] Unique constraint / Search constraint
+* [ ] More documentation
+* [ ] More testing
+* [ ] Write a book `Building a database management system`
+
+
+## Issues
+* [x] Skip text column added to record
+
 
 
 
@@ -168,27 +205,3 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 * C has `printf` for templating, PHP has `printf`.
 * C language is beautiful. There are only user defined functions.
 	* And so is PHP.
-
-
-
-## TODO:
-
-* [ ] Code cleanup
-* [ ] Data integrity on power failure
-* [ ] test flock
-* [ ] Global common config
-* [x] Implement arr_getcsv instead of implode
-* [x] Validations
-* [x] Type casting (stringify and typecast)
-* [x] JSON column
-* [x] Boolean column
-* [x] Text column
-* [x] Record transformations callback (Add/remove/modify values before returning)
-* [ ] Unique constraint / Search constraint
-* [ ] More documentation
-* [ ] More testing
-* [ ] Write a book `Building a database management system`
-
-
-## Issues
-* [x] Skip text column added to record
