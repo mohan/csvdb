@@ -101,8 +101,7 @@ function csvdb_update_record(&$config, $r_id, $values, $partial_update=false)
 		$i = 0;
 		foreach($config['columns'] as $column=>$type)
 		{
-			if($type != 'text')
-				$write_values[$column] = $is_indexed_values ? $values[$i++] : $values[$column];
+			$write_values[$column] = $is_indexed_values ? $values[$i++] : $values[$column];
 		}
 
 		return _csvdb_update_record_raw($config, $r_id, $write_values, $partial_update);
@@ -123,21 +122,12 @@ function csvdb_delete_record(&$config, $r_id, $hard_delete=false)
 
 	if($hard_delete){
 		foreach ($config['columns'] as $column=>$type) {
-			if($type != 'text') $values[] = '';
+			$values[] = '';
 		}
 		if($config['auto_timestamps']) $values[] = ''; $values[] = '';
 		$values[] = str_repeat('_', $config['max_record_width'] - sizeof($values) - 1) . 'X';
 
 		fputcsv($db_fp, $values);
-
-		foreach ($config['columns'] as $column_name => $type) {
-			if($type != 'text') continue;
-			$text_file_path = _csvdb_text_filepath($config, $r_id, $column_name);
-			if(file_exists($text_file_path)){
-				_csvdb_log($config, "delete $column_name text [r_id: $r_id]");
-				unlink($text_file_path);
-			}
-		}
 	} else {
 		fseek($db_fp, $record_position_id + $config['max_record_width'] - 1);
 		fwrite($db_fp, 'x');
@@ -221,7 +211,7 @@ function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
 
 	$j = 0;
 	foreach ($config['columns'] as $column=>$type) {
-		if($type != 'text') $record[$column] = $raw_record[$j++];
+		$record[$column] = $raw_record[$j++];
 	}
 
 	_csvdb_typecast_values($config, $record);
@@ -270,7 +260,7 @@ function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
 			$values = [];
 			$i = 0;
 			foreach ($config['columns'] as $column => $type) {
-				if($type != 'text') $values[$column] = $record[$i++];
+				$values[$column] = $record[$i++];
 			}
 			foreach ($partial_update_values as $column => $value) {
 				$values[$column] = $value;
@@ -327,7 +317,6 @@ function _csvdb_stringify_values(&$config, &$values)
 			case 'int': $values[$column] = is_int($values[$column]) ? $values[$column] : ''; break;
 			case 'float': $values[$column] = is_float($values[$column]) ? $values[$column] : ''; break;
 			case 'json': $values[$column] = is_array($values[$column]) ? json_encode($values[$column]) : ''; break;
-			case 'text': unset($values[$column]); break; // No need to store in table
 		}
 	}
 }
@@ -342,7 +331,6 @@ function _csvdb_typecast_values(&$config, &$values)
 			case 'int': $values[$column] = intval($values[$column]); break;
 			case 'float': $values[$column] = floatval($values[$column]); break;
 			case 'json': $values[$column] = json_decode($values[$column], true); break;
-			case 'text': unset($values[$column]); break; // Not stored in table
 		}
 	}
 }
@@ -368,10 +356,4 @@ function _csvdb_csv_arr_str_length($values)
 function _csvdb_log(&$config, $message)
 {
 	if($config['log']) trigger_error(basename($config['tablename'], ".csv") . ': ' . $message);
-}
-
-
-function _csvdb_text_filepath(&$config, $r_id, $column_name)
-{
-	return $config['data_dir'] . "/__csvdb_text/" .  $config['tablename'] . "/$column_name-$r_id";
 }

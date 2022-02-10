@@ -52,11 +52,6 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 	* Regular string, analogous to varchar.
 5. JSON
 	* Indexed array or key value array with support for nesting.
-6. Text
-	* Flexible string of unknown length.
-	* Stored as a text file with a predictable filename (Ex: `$r_id-$column_name`).
-	* Filename/reference is not stored in CSV file. So, CSV file will not contain this column.
-	* Available in full version.
 
 
 ## Example configuration:
@@ -72,8 +67,7 @@ $table_config = [
 		"has_attr"=>"bool",
 		"lucky_number"=>"int",
 		"float_lucky_number"=>"float",
-		"meta"=>"json",
-		"notes"=>"text"
+		"meta"=>"json"
 	],
 	"validations_callback" => "csvdb_testdb_validations_callback",
 	"auto_timestamps" => true,
@@ -131,16 +125,9 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 This version contains the full functionality of csvdb. Core is included in this.
 
 1. csvdb_create_table($config)
-	* Creates an empty table CSV file, the text column folder and the cache folder.
+	* Creates an empty table CSV file, and the cache folder.
 
-2. csvdb_update_text_column($config, $r_id, $column_name, $text)
-	* Update text column of a record.
-
-3. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
-	* Read text column of a record.
-	* Todo: Truncate not working.
-
-4. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
+2. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
 	* $search_fn is PHP callable type.
 	* Search function is called only once with all records from the given table.
 	* Return an associative array of filtered values.
@@ -166,7 +153,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 * [x] Type casting (stringify and typecast)
 * [x] JSON column
 * [x] Boolean column
-* [x] Text column
+* [ ] Text column
 * [x] Record transformations callback (Add/remove/modify values before returning)
 * [ ] Partial update argument is not needed. Auto-detect.
 * [ ] Unique constraint / Search constraint
@@ -176,7 +163,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 
 
 ## Issues
-* [x] Skip text column added to record
+
 
 
 

@@ -11,9 +11,7 @@ Use this version for full csvdb functionality.
 
 Implemented functions:
 1. csvdb_create_table($config)
-2. csvdb_update_text_column($config, $r_id, $column_name, $text)
-3. csvdb_read_text_column($config, $r_id, $column_name, $truncate=NULL)
-4. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
+2. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
 
 ***/
 
@@ -30,37 +28,7 @@ function csvdb_create_table(&$config)
 	_csvdb_log($config, "created table");
 
 	if(!is_dir($config['data_dir'] . '/__csvdb_cache')) mkdir($config['data_dir'] . '/__csvdb_cache');
-	if(!is_dir($config['data_dir'] . '/__csvdb_text')) mkdir($config['data_dir'] . '/__csvdb_text');
-	if(!is_dir($config['data_dir'] . '/__csvdb_text/' . $config['tablename'])) mkdir($config['data_dir'] . '/__csvdb_text/' . $config['tablename']);
 	return touch($csv_filepath);
-}
-
-
-// Update text column of a record
-function csvdb_update_text_column(&$config, $r_id, $column_name, $text)
-{
-	if(!array_key_exists($column_name, $config['columns']) || $config['columns'][$column_name] != 'text' || !is_string($text)) return false;
-	if(!csvdb_read_record($config, $r_id)) return false;
-
-	if( !call_user_func($config['validations_callback'], $r_id, [$column_name => $text], $config) ){
-		return false;
-	}
-
-	_csvdb_log($config, "update $column_name text [r_id: $r_id]");
-	file_put_contents(_csvdb_text_filepath($config, $r_id, $column_name), $text);
-
-	return true;
-}
-
-
-// Read text column of a record
-function csvdb_read_text_column(&$config, $r_id, $column_name, $truncate=NULL)
-{
-	if(!array_key_exists($column_name, $config['columns']) || $config['columns'][$column_name] != 'text') return false;
-	if(!csvdb_read_record($config, $r_id)) return false;
-
-	_csvdb_log($config, "read $column_name text [r_id: $r_id]");
-	return file_get_contents(_csvdb_text_filepath($config, $r_id, $column_name), false, null, 0);
 }
 
 

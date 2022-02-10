@@ -19,8 +19,7 @@ $config = [
 		"has_attr"=>"bool",
 		"lucky_number"=>"int",
 		"float_lucky_number"=>"float",
-		"meta"=>"json",
-		"notes"=>"text"
+		"meta"=>"json"
 	],
 	"validations_callback" => "csvdb_test_validations_callback",
 	"transformations_callback" => "csvdb_test_transformations_callback",
@@ -191,34 +190,6 @@ function test_csvdb( )
 	$csv_contents = file_get_contents($csv_filepath);
 
 	t("csvdb_create_table - row length", strlen($csv_contents) == 808);
-
-
-	// Soft delete
-	csvdb_create_record($config, [name=>"f", username=>"f-user", meta=>[1,2,3]]);
-	// Text column
-	csvdb_update_text_column($config, 9, 'notes', 'This is an example note...');
-	t("csvdb_read_text_column", csvdb_read_text_column($config, 9, 'notes') == 'This is an example note...');
-	csvdb_delete_record($config, 9);
-	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_delete_record - soft delete", strpos($csv_contents, "___x", 808) > 808);
-	t("csvdb_read_record - soft deleted record", csvdb_read_record($config, 9) === 0);
-	t("csvdb_read_text_column", csvdb_read_text_column($config, 9, 'notes') === false &&
-							file_exists(_csvdb_text_filepath($config, 9, 'notes')) === true
-							);
-
-	// Hard delete
-	csvdb_create_record($config, [name=>"f", username=>"f-user"]);
-	// Text column
-	csvdb_update_text_column($config, 10, 'notes', 'This is an example note...');
-	t("csvdb_read_text_column", csvdb_read_text_column($config, 10, 'notes') == 'This is an example note...');
-	csvdb_delete_record($config, 10, true);
-	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_delete_record - hard delete", strpos($csv_contents, ",,,,,,,,_____", 909) == 909 && strpos($csv_contents, "___X", 909) > 909);
-	t("csvdb_read_record - hard deleted record", csvdb_read_record($config, 10) === false);
-	t("csvdb_read_text_column", csvdb_read_text_column($config, 10, 'notes') === false &&
-								file_exists(_csvdb_text_filepath($config, 10, 'notes')) === false
-							);
-
 
 	csvdb_search_records($config, 'search_cache_key', false);
 	$records = csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
