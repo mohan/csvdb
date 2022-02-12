@@ -36,7 +36,7 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 ## Note
 
 * Database maintenance like backup, archiving and other operations are manual.
-* **Not tested**, use at your own risk.
+* **Not tested**, do not use.
 * Please feel free to implement it yourself.
 
 
@@ -58,8 +58,8 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 
 ```php
 $table_config = [
-	"tablename" => 'csvdb-testdb.csv',
 	"data_dir" => '/tmp',
+	"tablename" => 'csvdb-testdb.csv',
 	"max_record_width" => 100,
 	"columns" => [
 		"name"=>"string",
@@ -70,17 +70,25 @@ $table_config = [
 		"meta"=>"json"
 	],
 	"validations_callback" => "csvdb_testdb_validations_callback",
+	"transformations_callback" => "csvdb_test_transformations_callback",
 	"auto_timestamps" => true,
 	"log" => true
 ];
 ```
 
 
-Example validations:
+Example callbacks:
 ```php
-function csvdb_testdb_validations_callback($r_id, $values, $config) {
+function csvdb_testdb_validations_callback($r_id, $values, $t) {
 	if(!$values['username']) return false;
 	return true;
+}
+
+function csvdb_test_transformations_callback($values, $t)
+{
+	return [
+		'computed_value' => $values['username'] . ' - ' . $values['name']
+	];
 }
 ```
 
@@ -92,31 +100,29 @@ function csvdb_testdb_validations_callback($r_id, $values, $config) {
 
 This is the core of CSVDB. It only implements essential CRUD functions.
 
-1. csvdb_create_record($config, $values)
+1. csvdb_create_record($t, $values)
 	* Adds a new record at the end.
 	* Accepts either indexed array or associative array.
-	* Todo: Return new r_id.
 
-2. csvdb_read_record($config, $r_id)
+2. csvdb_read_record($t, $r_id)
 	* Return associative array of the record at r_id.
 	* Returns 0 for soft-deleted record, and false for hard-deleted.
 
-3. csvdb_update_record($config, $r_id, $values, $partial_update=false)
+3. csvdb_update_record($t, $r_id, $values)
 	* Update a record at record at r_id.
 	* Values can be indexed array or associative array.
-	* partial_update updates only a single value in the record. (Not implemented efficiently for simplicity.)
 	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
 
-4. csvdb_delete_record($config, $r_id, $hard_delete=false)
+4. csvdb_delete_record($t, $r_id, $hard_delete=false)
 	* Deletes a record by r_id.
 	* Default is soft delete, i.e data is not removed and record can be restored.
 	* With hard delete all values are removed permanently.
 	* Deleted records remain in the table, for r_ids to remain the same.
 
-5. csvdb_list_records($config, $page=1, $limit=-1)
+5. csvdb_list_records($t, $page=1, $limit=-1)
 	* Return all records in the table, with pagination if needed.
 
-6. csvdb_fetch_records($config, $r_ids)
+6. csvdb_fetch_records($t, $r_ids)
 	* Return multiple records by given r_ids array.
 
 
@@ -124,10 +130,10 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 
 This version contains the full functionality of csvdb. Core is included in this.
 
-1. csvdb_create_table($config)
+1. csvdb_create_table($t)
 	* Creates an empty table CSV file, and the cache folder.
 
-2. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
+2. csvdb_search_records($t, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
 	* $search_fn is PHP callable type.
 	* Search function is called only once with all records from the given table.
 	* Return an associative array of filtered values.
@@ -155,7 +161,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 * [x] Boolean column
 * [ ] Text column
 * [x] Record transformations callback (Add/remove/modify values before returning)
-* [ ] Partial update argument is not needed. Auto-detect.
+* [x] Partial update argument is not needed. Auto-detect.
 * [ ] Unique constraint / Search constraint
 * [ ] More documentation
 * [ ] More testing
@@ -163,7 +169,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 
 
 ## Issues
-
+* [x] Return new r_id for create_record.
 
 
 
@@ -176,7 +182,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 	* clarity
 	* Level 1 code folding
 	* User defined function naming in functional programming and no other keywords (Ex: Class).
-		* `csvdb_list_records($config)` is the same as `$table = new csvdb($config); $table->list_records();`
+		* `csvdb_list_records($t)` is the same as `$table = new csvdb($t); $table->list_records();`
 	* Private encapsulation is not needed, as it is all my own code.
 		* Underscoring is enough.
 	* compatability with C, and 
@@ -188,7 +194,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 * Power of PHP is associative array
 	* Only data structure needed to implement in C.
 	* Implement C compiler extension for missing associative array syntax.
-	* Garbage collection is just calling `free` at the end run loop.
+	* Garbage collection is just calling `free` at the end of run loop.
 * C has `printf` for templating, PHP has `printf`.
 * C language is beautiful. There are only user defined functions.
 	* And so is PHP.

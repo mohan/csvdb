@@ -2,7 +2,7 @@
 
 1. Close compatibility with C language. (PHP is C like).
 2. Must be easy to port to C language.
-3. Functional programming only. (Only required learning, function and variable).
+3. Functional programming only. (Only required learning: function and variable).
 4. Prefix function names according to their group name.
 5. Internal functions (private to a group) must be prefixed with an underscore followed by the group prefix.
 6. Internal functions must be at the end of all regular functions of a group.
@@ -15,4 +15,4 @@
 13. Try and reduce the number of files.
 14. Multiple function groups can be placed in the same file.
 15. One file is required for each namespace.
-16. Write tests.
+16. Focus on application logic. Write tests later or as needed.

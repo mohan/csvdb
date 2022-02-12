@@ -1,6 +1,5 @@
 <?php
 // License: GPL
-// Author: Mohan
 
 /***
 # CSVDB
@@ -10,8 +9,8 @@ Database System using CSV files for CRUD.
 Use this version for full csvdb functionality.
 
 Implemented functions:
-1. csvdb_create_table($config)
-2. csvdb_search_records($config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
+1. csvdb_create_table($t)
+2. csvdb_search_records($t, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
 
 ***/
 
@@ -19,37 +18,37 @@ Implemented functions:
 require_once "./csvdb-core.php";
 
 
-function csvdb_create_table(&$config)
+function csvdb_create_table(&$t)
 {
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath) return false;
-	if(file_exists($csv_filepath)) return false;
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
+	if(file_exists($filepath)) return false;
 
-	_csvdb_log($config, "created table");
+	_csvdb_log($t, "created table");
 
-	if(!is_dir($config['data_dir'] . '/__csvdb_cache')) mkdir($config['data_dir'] . '/__csvdb_cache');
-	return touch($csv_filepath);
+	if(!is_dir($t['data_dir'] . '/__csvdb_cache')) mkdir($t['data_dir'] . '/__csvdb_cache');
+	return touch($filepath);
 }
 
 
-function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
+function csvdb_search_records(&$t, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
 {
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath || $page < 1) return false;
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath || $page < 1) return false;
 
-	$cache_tablename = '/__csvdb_cache/' . basename($config['tablename'], '.csv') .  '_' . $cache_key . '.csv';
-	$cache_filepath  = $config['data_dir'] . $cache_tablename;
+	$cache_tablename = '/__csvdb_cache/' . basename($t['tablename'], '.csv') .  '_' . $cache_key . '.csv';
+	$cache_filepath  = $t['data_dir'] . $cache_tablename;
 
 	// Cache busting, if search_fn is false, to regenerate cache in the next run
 	if($search_fn === false){
-		_csvdb_log($config, "deleted file " . basename($cache_tablename, '.csv'));
+		_csvdb_log($t, "deleted file " . basename($cache_tablename, '.csv'));
 
 		if(file_exists($cache_filepath)) unlink($cache_filepath);
 		return;
 	}
 
 	if(!file_exists($cache_filepath)){
-		$records = csvdb_list_records($config);
+		$records = csvdb_list_records($t);
 		$results = call_user_func($search_fn, $records, $optional_search_fn_args);
 
 		$fp = fopen($cache_filepath, 'w');
@@ -75,7 +74,7 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 
 		fclose($fp);
 
-		_csvdb_log($config, "created file " . basename($cache_tablename, '.csv') . " with " . sizeof($results) . " records");
+		_csvdb_log($t, "created file " . basename($cache_tablename, '.csv') . " with " . sizeof($results) . " records");
 	}
 
 	$fp = fopen($cache_filepath, 'r');
@@ -87,11 +86,11 @@ function csvdb_search_records(&$config, $cache_key, $search_fn, $page=1, $limit=
 		fclose($fp);
 
 		$search_results_config = [
-			'data_dir' => $config['data_dir'],
+			'data_dir' => $t['data_dir'],
 			'tablename' => $cache_tablename,
 			'max_record_width' => strlen($columns_str) - 1,
 			'columns' => $columns,
-			'log' => $config['log']
+			'log' => $t['log']
 		];
 
 		$search_results = csvdb_list_records($search_results_config, $page, $limit);

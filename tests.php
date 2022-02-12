@@ -1,11 +1,10 @@
 <style>
 	pre{ color: #888; }
 	b { font-weight: normal; }
-	pre h2, pre p { color: #000; }
+	pre h2, pre h4, pre p { color: #000; }
 </style>
 <?php
 // License: GPL
-// Author: Mohan
 
 require_once './csvdb.php';
 
@@ -37,8 +36,9 @@ function test_csvdb_core( )
 	t("_csvdb_is_valid_config", strpos($csv_filepath, sys_get_temp_dir()) === 0);
 
 
-	csvdb_create_record($config, ["a", "b"]);
+	$r_id = csvdb_create_record($config, ["a", "b"]);
 	$csv_contents = file_get_contents($csv_filepath);
+	t("csvdb_create_record index array - r_id", $r_id == 1);
 	t("csvdb_create_record index array - row length", strlen($csv_contents) == 101);
 	t("csvdb_create_record index array - correct data", strpos($csv_contents, "a,b,0,,,,") == 0);
 
@@ -57,10 +57,16 @@ function test_csvdb_core( )
 	t("csvdb_read_record", $record['r_id'] == 2 && $record['name'] == 'c' && $record['username'] == 'd');
 
 
-	csvdb_create_record($config, [name=>"a-id", username=>"example-user", has_attr=>false, lucky_number=>7, float_lucky_number=>8.7, meta=>[a=>1, b=>2, c=>3]]);
+	csvdb_create_record($config, [	name=>"a-id",
+									username=>"example-user",
+									has_attr=>false,
+									lucky_number=>7,
+									float_lucky_number=>8.7,
+									meta=>[a=>1, b=>2, c=>3]
+								]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create_record - row length", strlen($csv_contents) == 303);
-	t("csvdb_create_record - correct data", strpos($csv_contents, "a-id,example-user,0,7,8.7,\"{\"\"a") == 202);
+	t("csvdb_create_record - correct data", strpos($csv_contents, "a-id,example-user,,7,8.7,\"{\"\"a") == 202);
 
 
 	$record = csvdb_read_record($config, 3);
@@ -81,7 +87,7 @@ function test_csvdb_core( )
 	csvdb_create_record($config, [name=>"c-id", invalid_column=>"example3-user", "c", "d", "e", "f", "e"]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create_record - row length", strlen($csv_contents) == 505);
-	t("csvdb_create_record - correct data", strpos($csv_contents, "c-id,,", 404) == 404);
+	t("csvdb_create_record - correct data", strpos($csv_contents, "c-id,,,", 404) == 404);
 
 	csvdb_create_record($config, [name=>"c-id-to-be-overwritten", username=>"c-user"]);
 	csvdb_update_record($config, 6, [name=>"d-id", username=>"d-user"]);
@@ -98,14 +104,14 @@ function test_csvdb_core( )
 
 	// Soft delete
 	csvdb_create_record($config, [name=>"e", username=>"e-user", meta=>[1,2,3]]);
-	csvdb_delete_record($config, 7);
+	csvdb_delete_record($config, 7, true);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_delete_record - soft delete", strpos($csv_contents, "___x", 606) > 606);
 	t("csvdb_read_record - soft deleted record", csvdb_read_record($config, 7) === 0);
 
 	// Hard delete
 	csvdb_create_record($config, [name=>"f", username=>"f-user"]);
-	csvdb_delete_record($config, 8, true);
+	csvdb_delete_record($config, 8);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_delete_record - hard delete", strpos($csv_contents, ",,,,,,,,_____", 707) == 707 && strpos($csv_contents, "___X", 707) > 707);
 	t("csvdb_read_record - hard deleted record", csvdb_read_record($config, 8) === false);
@@ -113,28 +119,28 @@ function test_csvdb_core( )
 
 	$records = csvdb_list_records($config, 1, 10);
 	t("csvdb_list_records - all pages", sizeof($records) == 6 &&
-							$records[0]['r_id'] == 1 && $records[0]['name'] == 'a' && $records[0]['username'] == 'b' &&
-							$records[1]['r_id'] == 2 && $records[1]['name'] == 'c' && $records[1]['username'] == 'd' &&
-							$records[4]['r_id'] == 5 && $records[4]['name'] == 'c-id' && $records[4]['username'] == 'c-user-partial-updated' &&
-							$records[5]['r_id'] == 6 && $records[5]['name'] == 'd-id' && $records[5]['username'] == 'd-user'
+							$records[1]['r_id'] == 1 && $records[1]['name'] == 'a' && $records[1]['username'] == 'b' &&
+							$records[2]['r_id'] == 2 && $records[2]['name'] == 'c' && $records[2]['username'] == 'd' &&
+							$records[5]['r_id'] == 5 && $records[5]['name'] == 'c-id' && $records[5]['username'] == 'c-user-partial-updated' &&
+							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
 	$records = csvdb_list_records($config, 1, 2);
 	t("csvdb_list_records - page 1 limit 2", sizeof($records) == 2 &&
-							$records[0]['r_id'] == 1 && $records[0]['name'] == 'a' && $records[0]['username'] == 'b' &&
-							$records[1]['r_id'] == 2 && $records[1]['name'] == 'c' && $records[1]['username'] == 'd'
+							$records[1]['r_id'] == 1 && $records[1]['name'] == 'a' && $records[1]['username'] == 'b' &&
+							$records[2]['r_id'] == 2 && $records[2]['name'] == 'c' && $records[2]['username'] == 'd'
 						);
 
 	$records = csvdb_list_records($config, 2, 2);
 	t("csvdb_list_records - page 2 limit 2", sizeof($records) == 2 &&
-							$records[0]['r_id'] == 3 && $records[0]['name'] == 'a-id' && $records[0]['username'] == 'example-user' &&
-							$records[1]['r_id'] == 4 && $records[1]['name'] == 'b-id' && $records[1]['username'] == 'example2-user'
+							$records[3]['r_id'] == 3 && $records[3]['name'] == 'a-id' && $records[3]['username'] == 'example-user' &&
+							$records[4]['r_id'] == 4 && $records[4]['name'] == 'b-id' && $records[4]['username'] == 'example2-user'
 						);
 
 	$records = csvdb_list_records($config, 3, 2);
 	t("csvdb_list_records - page 3 limit 2", sizeof($records) == 2 &&
-							$records[0]['r_id'] == 5 && $records[0]['name'] == 'c-id' && $records[0]['username'] == 'c-user-partial-updated' &&
-							$records[1]['r_id'] == 6 && $records[1]['name'] == 'd-id' && $records[1]['username'] == 'd-user'
+							$records[5]['r_id'] == 5 && $records[5]['name'] == 'c-id' && $records[5]['username'] == 'c-user-partial-updated' &&
+							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
 	$records = csvdb_list_records($config, 4, 2);
@@ -144,13 +150,16 @@ function test_csvdb_core( )
 
 	$records = csvdb_fetch_records($config, [3, 6]);
 	t("csvdb_fetch_records - [3, 6]", sizeof($records) == 2 &&
-							$records[0]['r_id'] == 3 && $records[0]['name'] == 'a-id' && $records[0]['username'] == 'example-user' &&
-							$records[1]['r_id'] == 6 && $records[1]['name'] == 'd-id' && $records[1]['username'] == 'd-user'
+							$records[3]['r_id'] == 3 && $records[3]['name'] == 'a-id' && $records[3]['username'] == 'example-user' &&
+							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
 	// Transformations
 	$record = csvdb_read_record($config, 1);
 	t("transformations_callback", $record['computed_value'] == 'b - a');
+
+	// UTF
+	csvdb_create_record($config, [name=>"汉体书写信息", username=>"壹貳參肆伍", meta=>[UTF=>true]]);
 }
 
 
@@ -189,7 +198,7 @@ function test_csvdb( )
 
 	$csv_contents = file_get_contents($csv_filepath);
 
-	t("csvdb_create_table - row length", strlen($csv_contents) == 808);
+	t("csvdb_create_table - row length", strlen($csv_contents) == 909);
 
 	csvdb_search_records($config, 'search_cache_key', false);
 	$records = csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
@@ -234,7 +243,7 @@ function t($test_name, $result)
 		echo "<hr><p>✗ Fail: " . $test_name . "\n\n";
 		debug_print_backtrace();
 
-		echo "<hr><p>" . file_get_contents(sys_get_temp_dir() . '/csvdb-testdb-123456789.csv') . "</p><hr>";
+		print_csv();
 		exit;
 	} else {
 		echo "<p>✓ Pass: " . $test_name . "</p><hr>\n";
@@ -243,6 +252,33 @@ function t($test_name, $result)
 
 
 
+function print_csv()
+{
+	global $config;
+
+	$csv_filepath = _csvdb_is_valid_config($config);
+	echo "<hr/>\n";
+	$fp = fopen($csv_filepath, 'r');
+	echo "<table border=1 bgcolor=#fff bordercolor=#ccc cellspacing=0 cellpadding=10>\n";
+	echo "<thead><tr>\n";
+	echo "<th>r_id</th><th>";
+	echo join("</th><th>", array_keys($config['columns']));
+	echo "</th><th>created_at</th><th>updated_at</th><th>padding</th>";
+	echo "</tr></thead><tbody>\n";
+
+	while ($record_str = fgets($fp)) {
+		$record = str_getcsv($record_str);
+
+		if($record[sizeof($record) - 1][-1] == 'x') $bgcolor = 'bgcolor=lightblue';
+		else if($record[sizeof($record) - 1][-1] == 'X') $bgcolor = 'bgcolor=bisque';
+		else $bgcolor = '';
+
+		echo "<tr $bgcolor title='$record_str'>\n<td>" . ++$i . "</td>\n<td>"  . join("</td>\n<td>", $record) . "</td>\n</tr>\n";
+	}
+
+	echo "</tbody></table>";
+	fclose($fp);
+}
 
 
 
@@ -257,8 +293,9 @@ if($_GET['test'] == 'core'){
 	test_csvdb();
 }
 
+print_csv();
+
 $csv_filepath = _csvdb_is_valid_config($config);
-echo "<hr/><p>\nRaw CSV file:\n" . file_get_contents($csv_filepath) . "</p><hr/>\n";
 unlink($csv_filepath);
-echo "<p>Deleted " . $csv_filepath . "\n";
-echo "<hr><p>\nAll tests completed successfully!\n</p>";
+echo "<br/><hr><p>Deleted " . $csv_filepath . "\n";
+echo "<p>\nAll tests completed successfully!\n</p>";

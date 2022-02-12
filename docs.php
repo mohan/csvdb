@@ -16,6 +16,7 @@ Usage:
 		h1,h2{ padding-bottom: 20px;  border-bottom:1px solid #ccc; }
 		pre{ tab-size:4; font-size: 111%; line-height:170%; }
 	</style>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 </head>
 <body>
 	<div style='margin: 10px auto; max-width: 80%; border: 1px solid #ddd; border-radius:4px; padding: 30px 50px;'>

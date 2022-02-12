@@ -1,6 +1,5 @@
 <?php
 // License: GPL
-// Author: Mohan
 
 /***
 # CSVDB
@@ -11,15 +10,15 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 For full functionality use csvdb.php.
 
 Implemented functions:
-1. csvdb_create_record($config, $values)
-2. csvdb_read_record($config, $r_id)
-3. csvdb_update_record($config, $r_id, $values, $partial_update=false)
-4. csvdb_delete_record($config, $r_id, $hard_delete=false)
-5. csvdb_list_records($config, $page=1, $limit=-1)
-6. csvdb_fetch_records($config, $r_ids)
+1. csvdb_create_record(&$t, $values)
+2. csvdb_read_record(&$t, $r_id)
+3. csvdb_update_record(&$t, $r_id, $values)
+4. csvdb_delete_record(&$t, $r_id, $soft_delete=false)
+5. csvdb_list_records(&$t, $page=1, $limit=-1)
+6. csvdb_fetch_records(&$t, $r_ids)
 
 Example configuration:
-$config = [
+$t = [
 	"data_dir" => '/tmp',
 	"tablename" => 'csvdb-testdb.csv',
 	"max_record_width" => 100,
@@ -30,141 +29,164 @@ $config = [
 ***/
 
 
-// Write an associative array of column values to CSV
-function csvdb_create_record(&$config, $values)
+function csvdb_create_record(&$t, $values)
 {
-	if( !call_user_func($config['validations_callback'], NULL, $values, $config) ){
-		return false;
-	}
-
-	return csvdb_update_record($config, NULL, $values);
-}
-
-
-// Fetch records by multiple r_ids
-function csvdb_fetch_records(&$config, $r_ids)
-{
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath || sizeof($r_ids) == 0) return false;
-
-	$db_fp = fopen($csv_filepath, 'r');
-
-	$records = [];
-	foreach ($r_ids as $r_id) {
-		$records[] = _csvdb_read_record_raw($config, $db_fp, $r_id);
-	}
-
-	fclose($db_fp);
-
-	_csvdb_log($config, "read [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . "]");
-
-	return $records;
-}
-
-
-// Read record from CSV file by r_id as an associative array
-function csvdb_read_record(&$config, $r_id)
-{
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath || $r_id < 1) return false;
-
-	$db_fp = fopen($csv_filepath, 'r');
-
-	$record = _csvdb_read_record_raw($config, $db_fp, $r_id);
-
-	fclose($db_fp);
-
-	_csvdb_log($config, "read [r_id: $r_id]");
-
-	return $record;
-}
-
-
-// Write an associative array of column values to CSV
-function csvdb_update_record(&$config, $r_id, $values, $partial_update=false)
-{
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath || !$values) return false;
-
-	if( !call_user_func($config['validations_callback'], $r_id, $values, $config) ){
-		return false;
-	}
-
-	$is_indexed_values = reset(array_keys($values)) === 0 ? true : false;
-
-	if($partial_update && $is_indexed_values) return false;
-
-	if($partial_update){
-		return _csvdb_update_record_raw($config, $r_id, $values, $partial_update);
-	} else {
-		$write_values = [];
-		$i = 0;
-		foreach($config['columns'] as $column=>$type)
-		{
-			$write_values[$column] = $is_indexed_values ? $values[$i++] : $values[$column];
-		}
-
-		return _csvdb_update_record_raw($config, $r_id, $write_values, $partial_update);
-	}
-}
-
-
-// Delete record from CSV
-function csvdb_delete_record(&$config, $r_id, $hard_delete=false)
-{
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath || $r_id < 1) return false;
-
-	$db_fp = fopen($csv_filepath, 'c+');
-
-	$record_position_id = _csvdb_seek_id($config, $db_fp, $r_id);
-	if($record_position_id === false) return false;
-
-	if($hard_delete){
-		foreach ($config['columns'] as $column=>$type) {
-			$values[] = '';
-		}
-		if($config['auto_timestamps']) $values[] = ''; $values[] = '';
-		$values[] = str_repeat('_', $config['max_record_width'] - sizeof($values) - 1) . 'X';
-
-		fputcsv($db_fp, $values);
-	} else {
-		fseek($db_fp, $record_position_id + $config['max_record_width'] - 1);
-		fwrite($db_fp, 'x');
-	}
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
 	
-	fclose($db_fp);
+	$final_values = _csvdb_prepare_values_to_write($t, $values);
+	if(!$final_values) return false;
 
-	_csvdb_log($config, ($hard_delete ? 'hard' : 'soft') . " delete record [r_id: $r_id]");
+	$fp = fopen($filepath, 'a');	
+	fputcsv($fp, $final_values);
+	fclose($fp);
+
+	$r_id = filesize($filepath) / ($t['max_record_width'] + 1);
+
+	_csvdb_log($t, "create [r_id: $r_id] with values [" . join(',', $values) . "]");
+
+	return $r_id;
 }
 
 
-function csvdb_list_records(&$config, $page=1, $limit=-1)
+function csvdb_read_record(&$t, $r_id)
 {
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath || $page < 1) return false;
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
+
+	$fp = fopen($filepath, 'r');
+	
+	$values = _csvdb_read_record_from_fp($t, $fp, $r_id);
+	
+	fclose($fp);
+
+	_csvdb_log($t, "read [r_id: $r_id]");
+
+	return $values;
+}
+
+
+function csvdb_update_record(&$t, $r_id, $values)
+{
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
+
+	$record = csvdb_read_record($t, $r_id);
+	if(!$record) return false;
+
+	// Overwrite record values from values argument
+	foreach ($values as $column => $value) {
+		if(array_key_exists($column, $t['columns'])) $record[$column] = $value;
+	}
+
+	$record = _csvdb_prepare_values_to_write($t, $record);
+
+	if( $t['auto_timestamps'] ){
+		$record['updated_at'] = date('U');
+	}
+
+	$fp = fopen($filepath, 'c');
+	_csvdb_seek_id($t, $fp, $r_id);
+	fputcsv($fp, $record);
+
+	_csvdb_log($t, "update [r_id: $r_id] with [" . join(',', $values) . "]");
+
+	return true;
+}
+
+
+function csvdb_delete_record(&$t, $r_id, $soft_delete=false)
+{
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
+
+	$fp = fopen($filepath, 'c+');
+	$record_position_id = _csvdb_seek_id($t, $fp, $r_id);
+
+	fseek($fp, $record_position_id + $t['max_record_width'] - 1);
+	if(fgetc($fp) != '_'){
+		fclose($fp);
+		return false;
+	}
+
+	if($soft_delete){
+		fseek($fp, $record_position_id + $t['max_record_width'] - 1);
+		fwrite($fp, 'x');
+	} else {
+		$values = [];
+		foreach ($t['columns'] as $column => $type) {
+			$values[$column] = '';
+		}
+		if($t['auto_timestamps']){
+			$values['created_at'] = '';
+			$values['updated_at'] = '';
+		}
+
+		$values = _csvdb_prepare_values_to_write($t, $values);
+		$values['___padding'][-1] = 'X';
+
+		fseek($fp, $record_position_id);
+		fputcsv($fp, $values);
+	}
+
+	fclose($fp);
+
+	_csvdb_log($t, ($soft_delete ? 'soft' : 'hard') . " delete record [r_id: $r_id]");
+
+	return true;
+}
+
+
+function csvdb_list_records(&$t, $page=1, $limit=-1)
+{
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
 
 	// First r_id
 	$r_id = ( $limit == -1 ? 0 : 
 				(($page - 1) * $limit * ($config['max_record_width'] + 1)) / ($config['max_record_width'] + 1)
 			) + 1;
 
-	$db_fp = fopen($csv_filepath, 'r');
+	$fp = fopen($filepath, 'r');
 	$records = [];
 	$r_ids = [];
 
 	for ($i=0, $j=0; $limit == -1 ? true : $i < $limit; $i++, $j=0, $r_id++) {
-		$record = _csvdb_read_record_raw($config, $db_fp, $r_id);
+		$record = _csvdb_read_record_from_fp($t, $fp, $r_id);
 		if($record === false || $record === 0) continue;
-		if($record === -1) break;
+		if($record == -1) break;
 
-		$records[$i] = $record;
+		$records[$r_id] = $record;
 		$r_ids[] = $r_id;
 	}
 
-	fclose($db_fp);
+	fclose($fp);
 
-	_csvdb_log($config, "read [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . ']');
+	_csvdb_log($t, "read [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . ']');
+
+	return $records;
+}
+
+
+function csvdb_fetch_records(&$t, $r_ids)
+{
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
+
+	$fp = fopen($filepath, 'r');
+	$records = [];
+
+	foreach ($r_ids as $r_id) {
+		$record = _csvdb_read_record_from_fp($t, $fp, $r_id);
+		if($record === false || $record === 0) continue;
+		if($record == -1) break;
+
+		$records[$r_id] = $record;
+	}
+
+	fclose($fp);
+
+	_csvdb_log($t, "read [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . "]");
 
 	return $records;
 }
@@ -174,55 +196,49 @@ function csvdb_list_records(&$config, $page=1, $limit=-1)
 // Internal functions
 //
 
-
 // Checks if config is valid and returns filepath
-function _csvdb_is_valid_config(&$config)
+function _csvdb_is_valid_config(&$t)
 {
-	return !$config || !$config['max_record_width'] || !$config['columns'] ? false : $config['data_dir'] . '/' . $config['tablename'];
+	return !$t || !$t['max_record_width'] || !$t['columns'] ? false : $t['data_dir'] . '/' . $t['tablename'];
 }
 
 
 // Seek fp to record_id position
-function _csvdb_seek_id(&$config, $db_fp, $r_id)
+function _csvdb_seek_id(&$t, $fp, $r_id)
 {
-	$r_id_position = ($r_id - 1) * $config['max_record_width'] + ($r_id - 1);
-	fseek($db_fp, $r_id_position);
+	$r_id_position = ($r_id - 1) * $t['max_record_width'] + ($r_id - 1);
+	fseek($fp, $r_id_position);
 
 	return $r_id_position;
 }
 
 
-// Read record from CSV file by r_id
-function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
+function _csvdb_read_record_from_fp(&$t, $fp, $r_id)
 {
-	_csvdb_seek_id($config, $db_fp, $r_id);
+	_csvdb_seek_id($t, $fp, $r_id);
+	
+	$values = fgetcsv($fp);
+	if(!$values) return -1;
 
-	$raw_record = fgetcsv($db_fp);
-	if($raw_record === false) return -1;
-
-	$delete_flag = array_pop($raw_record);
-
+	$delete_flag = array_pop($values);
 	if($delete_flag[-1] == 'x') return 0;
 	if($delete_flag[-1] == 'X') return false;
 
-	$record = [
-		'r_id' => $r_id
-	];
-
-	$j = 0;
-	foreach ($config['columns'] as $column=>$type) {
-		$record[$column] = $raw_record[$j++];
+	$i = 0;
+	$record['r_id'] = $r_id;
+	foreach ($t['columns'] as $column=>$type) {
+		$record[$column] = $values[$i++];
 	}
 
-	_csvdb_typecast_values($config, $record);
-
-	if($config['auto_timestamps']){
-		$record['created_at'] = $raw_record[$j++];
-		$record['updated_at'] = $raw_record[$j++];
+	if($t['auto_timestamps']){
+		$record['created_at'] = intval($values[$i++]);
+		$record['updated_at'] = intval($values[$i++]);
 	}
 
-	if($config['transformations_callback']) {
-		$transformed_record = call_user_func($config['transformations_callback'], $record, $config);
+	_csvdb_typecast_values($t, $record);
+
+	if($t['transformations_callback']) {
+		$transformed_record = call_user_func($t['transformations_callback'], $record, $t);
 		$record = array_merge($record, $transformed_record);
 	}
 
@@ -230,90 +246,49 @@ function _csvdb_read_record_raw(&$config, $db_fp, $r_id)
 }
 
 
-// Write an array of values to CSV file
-function _csvdb_update_record_raw(&$config, $r_id, $values, $partial_update)
+// Clean values (index or assoc array) into valid assoc array according to columns
+function _csvdb_prepare_values_to_write(&$t, $values)
 {
-	$csv_filepath = _csvdb_is_valid_config($config);
-	if(!$csv_filepath || !$values) return false;
-
-	if(sizeof($values) > sizeof($config['columns'])) $values = array_slice($values, 0, sizeof($config['columns']));
-
-	// New record
-	if($r_id == NULL){
-		$db_fp = fopen($csv_filepath, 'a');
-
-		if($config['auto_timestamps']){
-			$values['created_at'] = date('U');
-			$values['updated_at'] = date('U');
-		}
-	} else {
-		$db_fp = fopen($csv_filepath, 'c+');
-		_csvdb_seek_id($config, $db_fp, $r_id);
-
-		if($partial_update || $config['auto_timestamps']){
-			$record = fgetcsv($db_fp);
-			array_pop($record);
-		}
-
-		if($partial_update){
-			$partial_update_values = $values;
-			$values = [];
-			$i = 0;
-			foreach ($config['columns'] as $column => $type) {
-				$values[$column] = $record[$i++];
-			}
-			foreach ($partial_update_values as $column => $value) {
-				$values[$column] = $value;
-			}
-		}
-
-		if($config['auto_timestamps']){
-			$values['created_at'] = $record[sizeof($record) - 2];
-			$values['updated_at'] = date('U');
-		}
-
-		if($partial_update || $config['auto_timestamps']){
-			_csvdb_seek_id($config, $db_fp, $r_id);
-		}
-	}
-	
-	$write_success = _csvdb_write_record($db_fp, $config, $values);
-	
-	fclose($db_fp);
-	
-	return $write_success;
-}
-
-
-// Related to the above function
-function _csvdb_write_record($db_fp, &$config, $values)
-{
-	_csvdb_stringify_values($config, $values);
-	$csv_line_length = _csvdb_csv_arr_str_length($values);
-	$last_value_length = $config['max_record_width'] - $csv_line_length - 1;
-
-	$values_str = join(',', $values);
-	if($csv_line_length + $last_value_length + 1 > $config['max_record_width'])
-	{
-		_csvdb_log($config, "failed to write [$values_str]");
+	if( !call_user_func($t['validations_callback'], NULL, $values, $t) ){
 		return false;
 	}
 
-	$values[] = str_repeat('_', $last_value_length);
-	
-	fputcsv($db_fp, $values);
+	$final_values = [];
 
-	_csvdb_log($config, "wrote [$values_str]");
-	return true;
+	// Indexed array
+	if( reset(array_keys($values)) === 0 ){
+		$i = 0;
+		foreach ($t['columns'] as $column => $type) {
+			$final_values[$column] = $values[$i++];
+		}
+	} else {
+		foreach ($t['columns'] as $column => $type) {
+			$final_values[$column] = $values[$column];
+		}
+	}
+
+	_csvdb_stringify_values($t, $final_values);
+
+	if( $t['auto_timestamps'] ){
+		$final_values['created_at'] = isset($values['created_at']) ?  $values['created_at'] : date('U');
+		$final_values['updated_at'] = isset($values['updated_at']) ?  $values['updated_at'] : date('U');
+	}
+
+	$padding_length = $t['max_record_width'] - _csvdb_csv_arr_str_length($final_values) - 1;
+	$final_values['___padding'] = str_repeat('_', $padding_length);
+
+	return $final_values;
 }
 
 
 // Typecast values to string
-function _csvdb_stringify_values(&$config, &$values)
+function _csvdb_stringify_values(&$t, &$values)
 {
-	foreach ($config['columns'] as $column => $type) {
+	foreach ($t['columns'] as $column => $type) {
+		if(!array_key_exists($column, $values)) $values[$column] = '';
+
 		switch($type){
-			case 'bool': $values[$column] = $values[$column] ? 1 : 0; break;
+			case 'bool': $values[$column] = $values[$column] ? 1 : ''; break;
 			case 'int': $values[$column] = is_int($values[$column]) ? $values[$column] : ''; break;
 			case 'float': $values[$column] = is_float($values[$column]) ? $values[$column] : ''; break;
 			case 'json': $values[$column] = is_array($values[$column]) ? json_encode($values[$column]) : ''; break;
@@ -323,9 +298,9 @@ function _csvdb_stringify_values(&$config, &$values)
 
 
 // Typecast values to type
-function _csvdb_typecast_values(&$config, &$values)
+function _csvdb_typecast_values(&$t, &$values)
 {
-	foreach ($config['columns'] as $column => $type) {
+	foreach ($t['columns'] as $column => $type) {
 		switch($type){
 			case 'bool': $values[$column] = boolval($values[$column]); break;
 			case 'int': $values[$column] = intval($values[$column]); break;
@@ -353,7 +328,7 @@ function _csvdb_csv_arr_str_length($values)
 }
 
 
-function _csvdb_log(&$config, $message)
+function _csvdb_log(&$t, $message)
 {
-	if($config['log']) trigger_error(basename($config['tablename'], ".csv") . ': ' . $message);
+	if($t['log']) trigger_error(basename($t['tablename'], ".csv") . ': ' . $message);
 }
