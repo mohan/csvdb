@@ -152,7 +152,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 
 * [ ] Code cleanup
 * [ ] Data integrity on power failure
-* [ ] test flock
+* [x] test flock
 * [ ] Global common config
 * [x] Implement arr_getcsv instead of implode
 * [x] Validations

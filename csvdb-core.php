@@ -18,13 +18,14 @@ Implemented functions:
 6. csvdb_fetch_records(&$t, $r_ids)
 
 Example configuration:
-$t = [
+$table_config = [
 	"data_dir" => '/tmp',
 	"tablename" => 'csvdb-testdb.csv',
 	"max_record_width" => 100,
-	"columns" => ["name"=>"string", "username"=>"string", "lucky_number"=>"int", "float_lucky_number"=>"float", "meta"=>"json"],
-	"auto_timestamps" => true,
-	"log" => true
+	"columns" => [  "name"=>"string",
+					"username"=>"string",
+					"lucky_number"=>"int"
+				]
 ];
 ***/
 
@@ -37,8 +38,8 @@ function csvdb_create_record(&$t, $values)
 	$final_values = _csvdb_prepare_values_to_write($t, $values);
 	if(!$final_values) return false;
 
-	$fp = fopen($filepath, 'a');	
-	fputcsv($fp, $final_values);
+	$fp = fopen($filepath, 'a');
+	_csvdb_write_csv($fp, $final_values);
 	fclose($fp);
 
 	$r_id = filesize($filepath) / ($t['max_record_width'] + 1);
@@ -88,7 +89,7 @@ function csvdb_update_record(&$t, $r_id, $values)
 
 	$fp = fopen($filepath, 'c');
 	_csvdb_seek_id($t, $fp, $r_id);
-	fputcsv($fp, $record);
+	_csvdb_write_csv($fp, $record);
 	fclose($fp);
 
 	_csvdb_log($t, "update [r_id: $r_id] with [" . join(',', $values) . "]");
@@ -113,7 +114,7 @@ function csvdb_delete_record(&$t, $r_id, $soft_delete=false)
 
 	if($soft_delete){
 		fseek($fp, $record_position_id + $t['max_record_width'] - 1);
-		fwrite($fp, 'x');
+		_csvdb_fwrite($fp, 'x');
 	} else {
 		$values = [];
 		foreach ($t['columns'] as $column => $type) {
@@ -128,7 +129,7 @@ function csvdb_delete_record(&$t, $r_id, $soft_delete=false)
 		$values['___padding'][-1] = 'X';
 
 		fseek($fp, $record_position_id);
-		fputcsv($fp, $values);
+		_csvdb_write_csv($fp, $values);
 	}
 
 	fclose($fp);
@@ -333,6 +334,20 @@ function _csvdb_csv_arr_str_length($values)
 	}
 
 	return $i - 1; // Remove last ,
+}
+
+
+function _csvdb_write_csv($fp, $record)
+{
+	$_would_block=1; flock($fp, LOCK_EX, $_would_block);
+	fputcsv($fp, $record);
+}
+
+
+function _csvdb_fwrite($fp, $bytes)
+{
+	$_would_block=1; flock($fp, LOCK_EX, $_would_block);
+	fwrite($fp, $bytes);
 }
 
 
