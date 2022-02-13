@@ -80,6 +80,7 @@ function csvdb_update_record(&$t, $r_id, $values)
 	}
 
 	$record = _csvdb_prepare_values_to_write($t, $record);
+	if(!$record) return false;
 
 	if( $t['auto_timestamps'] ){
 		$record['updated_at'] = date('U');
@@ -88,6 +89,7 @@ function csvdb_update_record(&$t, $r_id, $values)
 	$fp = fopen($filepath, 'c');
 	_csvdb_seek_id($t, $fp, $r_id);
 	fputcsv($fp, $record);
+	fclose($fp);
 
 	_csvdb_log($t, "update [r_id: $r_id] with [" . join(',', $values) . "]");
 
@@ -275,7 +277,13 @@ function _csvdb_prepare_values_to_write(&$t, $values)
 	}
 
 	$padding_length = $t['max_record_width'] - _csvdb_csv_arr_str_length($final_values) - 1;
-	$final_values['___padding'] = str_repeat('_', $padding_length);
+	if($padding_length >= 1){
+		// Last char delete flag
+		$final_values['___padding'] = str_repeat('_', $padding_length);
+	} else {
+		// More than width
+		return false;
+	}
 
 	return $final_values;
 }

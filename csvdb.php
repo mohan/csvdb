@@ -107,3 +107,8 @@ function csvdb_search_records(&$t, $cache_key, $search_fn, $page=1, $limit=-1, $
 // Internal functions
 //
 
+function _csvdb_cache_filepath(&$t, $cache_key)
+{
+	$cache_tablename = '/__csvdb_cache/' . basename($t['tablename'], '.csv') .  '_' . $cache_key . '.csv';
+	return $t['data_dir'] . $cache_tablename;
+}

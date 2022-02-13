@@ -16,7 +16,7 @@ Project Status: Work in progress
 	* Seeking records is fast, as `record_ids (r_id)` are predictable (a multiplier of record width).
 * Fast for read operations (0s latency).
 	* Uses classic `fopen` instead of traditional sockets as in a regular database.
-	* Writes are fast. For a write updates centric application a regular database is recommended.
+	* For more speed, use a memory based file system for CSV file, and sync to disk.
 * Implements `search` function with caching, analogous to database index.
 	* Secondary keys like a custom id (hash or number) may be implemented using this.
 * Supports auto timestamps for `created_at` and `updated_at` columns.
@@ -36,6 +36,7 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 ## Note
 
 * Database maintenance like backup, archiving and other operations are manual.
+* Writes are fast. For a write updates centric application a regular database is recommended.
 * **Not tested**, do not use.
 * Please feel free to implement it yourself.
 
@@ -51,7 +52,7 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 4. String
 	* Regular string, analogous to varchar.
 5. JSON
-	* Indexed array or key value array with support for nesting.
+	* Indexed array or associative array.
 
 
 ## Example configuration:
@@ -84,8 +85,7 @@ function csvdb_testdb_validations_callback($r_id, $values, $t) {
 	return true;
 }
 
-function csvdb_test_transformations_callback($values, $t)
-{
+function csvdb_test_transformations_callback($values, $t) {
 	return [
 		'computed_value' => $values['username'] . ' - ' . $values['name']
 	];

@@ -1,8 +1,13 @@
 <style>
 	pre{ color: #888; }
 	b { font-weight: normal; }
-	pre h2, pre h4, pre p { color: #000; }
+	pre h2, pre h4, pre p, pre div { color: #000; }
 </style>
+<script type="text/javascript">
+	window.onload = function(){
+		document.getElementById('flash').innerHTML = document.getElementById('result').innerHTML;
+	}
+</script>
 <?php
 // License: GPL
 
@@ -159,7 +164,10 @@ function test_csvdb_core( )
 	t("transformations_callback", $record['computed_value'] == 'b - a');
 
 	// UTF
-	csvdb_create_record($config, [name=>"汉体书写信息", username=>"壹貳參肆伍", meta=>[UTF=>true]]);
+	csvdb_create_record($config, [name=>"🐶🐱🐭", username=>"🐴🦄🐝", meta=>[UTF=>true, '2bytes' => '1char']]);
+	csvdb_create_record($config, [name=>"Example", username=>"user", meta=>[UTF=>false]]);
+	$record = csvdb_read_record($config, 10);
+	t("csvdb_read_record", $record['r_id'] == 10 && $record['name'] == 'Example' && $record['username'] == 'user');
 }
 
 
@@ -198,7 +206,7 @@ function test_csvdb( )
 
 	$csv_contents = file_get_contents($csv_filepath);
 
-	t("csvdb_create_table - row length", strlen($csv_contents) == 909);
+	t("csvdb_create_table - row length", strlen($csv_contents) == 1010);
 
 	csvdb_search_records($config, 'search_cache_key', false);
 	$records = csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
@@ -240,8 +248,10 @@ function _test_csvdb_search_cb($records)
 function t($test_name, $result)
 {
 	if(result === false || $result == NULL || !$result) {
-		echo "<hr><p>✗ Fail: " . $test_name . "\n\n";
+		echo "<hr><div id='result'>";
+		echo "<p style='color:red;'>✗ Fail: " . $test_name . "\n\n";
 		debug_print_backtrace();
+		echo "</p></div>";
 
 		print_csv();
 		exit;
@@ -273,16 +283,22 @@ function print_csv()
 		else if($record[sizeof($record) - 1][-1] == 'X') $bgcolor = 'bgcolor=bisque';
 		else $bgcolor = '';
 
-		echo "<tr $bgcolor title='$record_str'>\n<td>" . ++$i . "</td>\n<td>"  . join("</td>\n<td>", $record) . "</td>\n</tr>\n";
+		echo "<tr $bgcolor>\n<td>" . ++$i . "</td>\n<td>"  . join("</td>\n<td>", $record) . "</td>\n</tr>\n";
 	}
 
 	echo "</tbody></table>";
 	fclose($fp);
+
+	echo "<div><br/><hr/>" . file_get_contents($csv_filepath) . "</div>";
+	unlink($csv_filepath);
+	echo "<hr><p>Deleted " . $csv_filepath . "\n";
 }
 
 
 
-echo "<h2>Tests: " . $_GET['test'] . "</h2>\n<p>Configuration:\n";
+echo "<h2>Tests: " . $_GET['test'] . "</h2>";
+echo "<div id='flash'></div>";
+echo "<p>Configuration:\n";
 print_r($config);
 echo "</p>\n\n";
 
@@ -294,8 +310,6 @@ if($_GET['test'] == 'core'){
 }
 
 print_csv();
+?>
 
-$csv_filepath = _csvdb_is_valid_config($config);
-unlink($csv_filepath);
-echo "<br/><hr><p>Deleted " . $csv_filepath . "\n";
-echo "<p>\nAll tests completed successfully!\n</p>";
+<div id='result'><p style='color:green;font-size:120%;'>✓ All tests completed successfully!</p></div>
