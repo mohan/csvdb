@@ -242,10 +242,35 @@ function _test_csvdb_search_cb($records)
 
 
 
+function test_csvdb_large_record()
+{
+	$table_large = [
+		"tablename" => 'csvdb-test-largerecord-123456789.csv',
+		"data_dir" => sys_get_temp_dir(),
+		"max_record_width" => 200,
+		"columns" => [
+			"name"=>"string",
+			"username"=>"string",
+		],
+		"auto_timestamps" => true
+	];
+
+	for ($i=1; $i <= 1000; $i++) {
+		$id = csvdb_create_record($table_large, [name=>"id-$i", username=>"example-user-$i"]);
+		t("large_record_csvdb_create_record", $id == $i, false);
+		$record = csvdb_read_record($table_large, $id);
+		t("large_record_csvdb_read_record", $record['r_id'] == $i && $record['name']=="id-$i" && $record['username']=="example-user-$i", false);
+	}
+
+	t("large_record_csvdb_record_size", csvdb_last_record_id($table_large) == 1000);
+}
 
 
 
-function t($test_name, $result)
+
+
+
+function t($test_name, $result, $print_pass=true)
 {
 	if(result === false || $result == NULL || !$result) {
 		echo "<hr><div id='result'>";
@@ -256,7 +281,7 @@ function t($test_name, $result)
 		print_csv();
 		exit;
 	} else {
-		echo "<p>✓ Pass: " . $test_name . "</p><hr>\n";
+		if($print_pass) echo "<p>✓ Pass: " . $test_name . "</p><hr>\n";
 	}
 }
 
@@ -289,8 +314,12 @@ function print_csv()
 	echo "</tbody></table>";
 	fclose($fp);
 
+	$csv_large_filepath = sys_get_temp_dir() . "/csvdb-test-largerecord-123456789.csv";
+
 	echo "<div><br/><hr/>" . file_get_contents($csv_filepath) . "</div>";
+	// echo "<div><br/><hr/>" . file_get_contents($csv_large_filepath);
 	unlink($csv_filepath);
+	unlink($csv_large_filepath);
 	echo "<hr><p>Deleted " . $csv_filepath . "\n";
 }
 
@@ -307,6 +336,7 @@ if($_GET['test'] == 'core'){
 } else {
 	test_csvdb_core();
 	test_csvdb();
+	test_csvdb_large_record();
 }
 
 print_csv();

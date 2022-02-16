@@ -170,6 +170,7 @@ This version contains the full functionality of csvdb. Core is included in this.
 
 ## Issues
 * [x] Return new r_id for create_record.
+* [x] Wrong list records when only one record.
 
 
 

@@ -16,6 +16,7 @@ Implemented functions:
 4. csvdb_delete_record(&$t, $r_id, $soft_delete=false)
 5. csvdb_list_records(&$t, $page=1, $limit=-1)
 6. csvdb_fetch_records(&$t, $r_ids)
+7. csvdb_last_record_id(&$t)
 
 Example configuration:
 $table_config = [
@@ -39,10 +40,12 @@ function csvdb_create_record(&$t, $values)
 	if(!$final_values) return false;
 
 	$fp = fopen($filepath, 'a');
+	csvdb_last_record_id($t);
 	_csvdb_write_csv($fp, $final_values);
 	fclose($fp);
 
-	$r_id = filesize($filepath) / ($t['max_record_width'] + 1);
+	$t['__last_record_r_id'] += 1;
+	$r_id = $t['__last_record_r_id'];
 
 	_csvdb_log($t, "create [r_id: $r_id] with values [" . join(',', $values) . "]");
 
@@ -195,6 +198,19 @@ function csvdb_fetch_records(&$t, $r_ids)
 }
 
 
+function csvdb_last_record_id(&$t)
+{
+	$filepath = _csvdb_is_valid_config($t);
+	if(!$filepath) return false;
+
+	if(!$t['__last_record_r_id']){
+		$t['__last_record_r_id'] = filesize($filepath) / ($t['max_record_width'] + 1);
+	}
+
+	return $t['__last_record_r_id'];
+}
+
+
 //
 // Internal functions
 //
@@ -220,7 +236,7 @@ function _csvdb_read_record_from_fp(&$t, $fp, $r_id)
 {
 	_csvdb_seek_id($t, $fp, $r_id);
 	
-	$values = fgetcsv($fp);
+	$values = fgetcsv($fp, $t['max_record_width']);
 	if(!$values) return -1;
 
 	$delete_flag = array_pop($values);
@@ -252,7 +268,7 @@ function _csvdb_read_record_from_fp(&$t, $fp, $r_id)
 // Clean values (index or assoc array) into valid assoc array according to columns
 function _csvdb_prepare_values_to_write(&$t, $values)
 {
-	if( !call_user_func($t['validations_callback'], NULL, $values, $t) ){
+	if( $t['validations_callback'] && !call_user_func($t['validations_callback'], NULL, $values, $t) ){
 		return false;
 	}
 
@@ -341,6 +357,8 @@ function _csvdb_write_csv($fp, $record)
 {
 	$_would_block=1; flock($fp, LOCK_EX, $_would_block);
 	fputcsv($fp, $record);
+	fflush($fp);
+	flock($fp, LOCK_UN);
 }
 
 
@@ -348,6 +366,8 @@ function _csvdb_fwrite($fp, $bytes)
 {
 	$_would_block=1; flock($fp, LOCK_EX, $_would_block);
 	fwrite($fp, $bytes);
+	fflush($fp);
+	flock($fp, LOCK_UN);
 }
 
 
