@@ -10,13 +10,13 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 For full functionality use csvdb.php.
 
 Implemented functions:
-1. csvdb_create_record(&$t, $values)
-2. csvdb_read_record(&$t, $r_id)
-3. csvdb_update_record(&$t, $r_id, $values)
-4. csvdb_delete_record(&$t, $r_id, $soft_delete=false)
-5. csvdb_list_records(&$t, $page=1, $limit=-1)
-6. csvdb_fetch_records(&$t, $r_ids)
-7. csvdb_last_record_id(&$t)
+1. csvdb_create(&$t, $values)
+2. csvdb_read(&$t, $r_id)
+3. csvdb_update(&$t, $r_id, $values)
+4. csvdb_delete(&$t, $r_id, $soft_delete=false)
+5. csvdb_list(&$t, $page=1, $limit=-1)
+6. csvdb_fetch(&$t, $r_ids)
+7. csvdb_last_r_id(&$t)
 
 Example configuration:
 $table_config = [
@@ -31,7 +31,7 @@ $table_config = [
 ***/
 
 
-function csvdb_create_record(&$t, $values)
+function csvdb_create(&$t, $values)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
@@ -40,7 +40,7 @@ function csvdb_create_record(&$t, $values)
 	if(!$final_values) return false;
 
 	$fp = fopen($filepath, 'a');
-	csvdb_last_record_id($t);
+	csvdb_last_r_id($t);
 	_csvdb_write_csv($fp, $final_values);
 	fclose($fp);
 
@@ -53,7 +53,7 @@ function csvdb_create_record(&$t, $values)
 }
 
 
-function csvdb_read_record(&$t, $r_id)
+function csvdb_read(&$t, $r_id)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
@@ -70,12 +70,12 @@ function csvdb_read_record(&$t, $r_id)
 }
 
 
-function csvdb_update_record(&$t, $r_id, $values)
+function csvdb_update(&$t, $r_id, $values)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
-	$record = csvdb_read_record($t, $r_id);
+	$record = csvdb_read($t, $r_id);
 	if(!$record) return false;
 
 	// Overwrite record values from values argument
@@ -101,7 +101,7 @@ function csvdb_update_record(&$t, $r_id, $values)
 }
 
 
-function csvdb_delete_record(&$t, $r_id, $soft_delete=false)
+function csvdb_delete(&$t, $r_id, $soft_delete=false)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
@@ -143,7 +143,7 @@ function csvdb_delete_record(&$t, $r_id, $soft_delete=false)
 }
 
 
-function csvdb_list_records(&$t, $page=1, $limit=-1)
+function csvdb_list(&$t, $page=1, $limit=-1)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
@@ -168,13 +168,13 @@ function csvdb_list_records(&$t, $page=1, $limit=-1)
 
 	fclose($fp);
 
-	_csvdb_log($t, "read [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . ']');
+	_csvdb_log($t, "list " . sizeof($r_ids) . " records");
 
 	return $records;
 }
 
 
-function csvdb_fetch_records(&$t, $r_ids)
+function csvdb_fetch(&$t, $r_ids)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
@@ -192,13 +192,13 @@ function csvdb_fetch_records(&$t, $r_ids)
 
 	fclose($fp);
 
-	_csvdb_log($t, "read [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . "]");
+	_csvdb_log($t, "fetch [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . "]");
 
 	return $records;
 }
 
 
-function csvdb_last_record_id(&$t)
+function csvdb_last_r_id(&$t)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;

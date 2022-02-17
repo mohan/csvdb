@@ -11,7 +11,8 @@
 <?php
 // License: GPL
 
-require_once './csvdb.php';
+require_once './csvdb-core.php';
+require_once './csvdb-extra.php';
 
 $config = [
 	"tablename" => 'csvdb-testdb-123456789.csv',
@@ -37,32 +38,32 @@ function test_csvdb_core( )
 	global $config;
 
 	$csv_filepath = _csvdb_is_valid_config($config);
-	if(file_exists($csv_filepath)) unlink($csv_filepath);
+	if(is_file($csv_filepath)) unlink($csv_filepath);
 	t("_csvdb_is_valid_config", strpos($csv_filepath, sys_get_temp_dir()) === 0);
 
 
-	$r_id = csvdb_create_record($config, ["a", "b"]);
+	$r_id = csvdb_create($config, ["a", "b"]);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_create_record index array - r_id", $r_id == 1);
-	t("csvdb_create_record index array - row length", strlen($csv_contents) == 101);
-	t("csvdb_create_record index array - correct data", strpos($csv_contents, "a,b,0,,,,") == 0);
+	t("csvdb_create index array - r_id", $r_id == 1);
+	t("csvdb_create index array - row length", strlen($csv_contents) == 101);
+	t("csvdb_create index array - correct data", strpos($csv_contents, "a,b,0,,,,") == 0);
 
 
-	$record = csvdb_read_record($config, 1);
-	t("csvdb_read_record", $record['r_id'] == 1 && $record['name'] == 'a' && $record['username'] == 'b');
+	$record = csvdb_read($config, 1);
+	t("csvdb_read", $record['r_id'] == 1 && $record['name'] == 'a' && $record['username'] == 'b');
 
-	csvdb_create_record($config, ["c", "d", "e", "f", "g", "h", "i", "j"]);
+	csvdb_create($config, ["c", "d", "e", "f", "g", "h", "i", "j"]);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_create_record index array - row length", strlen($csv_contents) == 202);
-	t("csvdb_create_record index array - correct data", strpos($csv_contents, "c,d,e,f,g,h,i", 101) === false);
-	t("csvdb_create_record index array - correct data", strpos($csv_contents, "c,d,", 101) == 101);
+	t("csvdb_create index array - row length", strlen($csv_contents) == 202);
+	t("csvdb_create index array - correct data", strpos($csv_contents, "c,d,e,f,g,h,i", 101) === false);
+	t("csvdb_create index array - correct data", strpos($csv_contents, "c,d,", 101) == 101);
 
 
-	$record = csvdb_read_record($config, 2);
-	t("csvdb_read_record", $record['r_id'] == 2 && $record['name'] == 'c' && $record['username'] == 'd');
+	$record = csvdb_read($config, 2);
+	t("csvdb_read", $record['r_id'] == 2 && $record['name'] == 'c' && $record['username'] == 'd');
 
 
-	csvdb_create_record($config, [	name=>"a-id",
+	csvdb_create($config, [	name=>"a-id",
 									username=>"example-user",
 									has_attr=>false,
 									lucky_number=>7,
@@ -70,12 +71,12 @@ function test_csvdb_core( )
 									meta=>[a=>1, b=>2, c=>3]
 								]);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_create_record - row length", strlen($csv_contents) == 303);
-	t("csvdb_create_record - correct data", strpos($csv_contents, "a-id,example-user,,7,8.7,\"{\"\"a") == 202);
+	t("csvdb_create - row length", strlen($csv_contents) == 303);
+	t("csvdb_create - correct data", strpos($csv_contents, "a-id,example-user,,7,8.7,\"{\"\"a") == 202);
 
 
-	$record = csvdb_read_record($config, 3);
-	t("csvdb_read_record", $record['r_id'] == 3 && $record['name'] == 'a-id' && $record['username'] == 'example-user' &&
+	$record = csvdb_read($config, 3);
+	t("csvdb_read", $record['r_id'] == 3 && $record['name'] == 'a-id' && $record['username'] == 'example-user' &&
 							is_bool($record['has_attr']) && $record['has_attr'] === false &&
 							is_int($record['lucky_number']) && $record['lucky_number'] == 7 &&
 							is_float($record['float_lucky_number']) && $record['float_lucky_number'] == 8.7 &&
@@ -83,91 +84,91 @@ function test_csvdb_core( )
 							!array_key_exists('notes', $record)
 						);
 
-	csvdb_create_record($config, [name=>"b-id", username=>"example2-user", "c", "d", "e", "f", "e"]);
+	csvdb_create($config, [name=>"b-id", username=>"example2-user", "c", "d", "e", "f", "e"]);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_create_record - row length", strlen($csv_contents) == 404);
-	t("csvdb_create_record - correct data", strpos($csv_contents, "b-id,example2-user,", 303) == 303);
+	t("csvdb_create - row length", strlen($csv_contents) == 404);
+	t("csvdb_create - correct data", strpos($csv_contents, "b-id,example2-user,", 303) == 303);
 
 
-	csvdb_create_record($config, [name=>"c-id", invalid_column=>"example3-user", "c", "d", "e", "f", "e"]);
+	csvdb_create($config, [name=>"c-id", invalid_column=>"example3-user", "c", "d", "e", "f", "e"]);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_create_record - row length", strlen($csv_contents) == 505);
-	t("csvdb_create_record - correct data", strpos($csv_contents, "c-id,,,", 404) == 404);
+	t("csvdb_create - row length", strlen($csv_contents) == 505);
+	t("csvdb_create - correct data", strpos($csv_contents, "c-id,,,", 404) == 404);
 
-	csvdb_create_record($config, [name=>"c-id-to-be-overwritten", username=>"c-user"]);
-	csvdb_update_record($config, 6, [name=>"d-id", username=>"d-user"]);
-	csvdb_update_record($config, 5, [name=>"c-id", username=>"c-user"]);
+	csvdb_create($config, [name=>"c-id-to-be-overwritten", username=>"c-user"]);
+	csvdb_update($config, 6, [name=>"d-id", username=>"d-user"]);
+	csvdb_update($config, 5, [name=>"c-id", username=>"c-user"]);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_update_record - row length", strlen($csv_contents) == 606);
-	t("csvdb_update_record - correct data", strpos($csv_contents, "c-id,c-user,", 404) == 404);
-	t("csvdb_update_record - correct data", strpos($csv_contents, "d-id,d-user,", 505) == 505);
+	t("csvdb_update - row length", strlen($csv_contents) == 606);
+	t("csvdb_update - correct data", strpos($csv_contents, "c-id,c-user,", 404) == 404);
+	t("csvdb_update - correct data", strpos($csv_contents, "d-id,d-user,", 505) == 505);
 
-	csvdb_update_record($config, 5, [username=>"c-user-partial-updated"], true);
+	csvdb_update($config, 5, [username=>"c-user-partial-updated"], true);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_update_record - partial_update", strpos($csv_contents, "c-id,c-user-partial-updated,", 404) == 404);
+	t("csvdb_update - partial_update", strpos($csv_contents, "c-id,c-user-partial-updated,", 404) == 404);
 
 
 	// Soft delete
-	csvdb_create_record($config, [name=>"e", username=>"e-user", meta=>[1,2,3]]);
-	csvdb_delete_record($config, 7, true);
+	csvdb_create($config, [name=>"e", username=>"e-user", meta=>[1,2,3]]);
+	csvdb_delete($config, 7, true);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_delete_record - soft delete", strpos($csv_contents, "___x", 606) > 606);
-	t("csvdb_read_record - soft deleted record", csvdb_read_record($config, 7) === 0);
+	t("csvdb_delete - soft delete", strpos($csv_contents, "___x", 606) > 606);
+	t("csvdb_read - soft deleted record", csvdb_read($config, 7) === 0);
 
 	// Hard delete
-	csvdb_create_record($config, [name=>"f", username=>"f-user"]);
-	csvdb_delete_record($config, 8);
+	csvdb_create($config, [name=>"f", username=>"f-user"]);
+	csvdb_delete($config, 8);
 	$csv_contents = file_get_contents($csv_filepath);
-	t("csvdb_delete_record - hard delete", strpos($csv_contents, ",,,,,,,,_____", 707) == 707 && strpos($csv_contents, "___X", 707) > 707);
-	t("csvdb_read_record - hard deleted record", csvdb_read_record($config, 8) === false);
+	t("csvdb_delete - hard delete", strpos($csv_contents, ",,,,,,,,_____", 707) == 707 && strpos($csv_contents, "___X", 707) > 707);
+	t("csvdb_read - hard deleted record", csvdb_read($config, 8) === false);
 
 
-	$records = csvdb_list_records($config, 1, 10);
-	t("csvdb_list_records - all pages", sizeof($records) == 6 &&
+	$records = csvdb_list($config, 1, 10);
+	t("csvdb_list - all pages", sizeof($records) == 6 &&
 							$records[1]['r_id'] == 1 && $records[1]['name'] == 'a' && $records[1]['username'] == 'b' &&
 							$records[2]['r_id'] == 2 && $records[2]['name'] == 'c' && $records[2]['username'] == 'd' &&
 							$records[5]['r_id'] == 5 && $records[5]['name'] == 'c-id' && $records[5]['username'] == 'c-user-partial-updated' &&
 							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
-	$records = csvdb_list_records($config, 1, 2);
-	t("csvdb_list_records - page 1 limit 2", sizeof($records) == 2 &&
+	$records = csvdb_list($config, 1, 2);
+	t("csvdb_list - page 1 limit 2", sizeof($records) == 2 &&
 							$records[1]['r_id'] == 1 && $records[1]['name'] == 'a' && $records[1]['username'] == 'b' &&
 							$records[2]['r_id'] == 2 && $records[2]['name'] == 'c' && $records[2]['username'] == 'd'
 						);
 
-	$records = csvdb_list_records($config, 2, 2);
-	t("csvdb_list_records - page 2 limit 2", sizeof($records) == 2 &&
+	$records = csvdb_list($config, 2, 2);
+	t("csvdb_list - page 2 limit 2", sizeof($records) == 2 &&
 							$records[3]['r_id'] == 3 && $records[3]['name'] == 'a-id' && $records[3]['username'] == 'example-user' &&
 							$records[4]['r_id'] == 4 && $records[4]['name'] == 'b-id' && $records[4]['username'] == 'example2-user'
 						);
 
-	$records = csvdb_list_records($config, 3, 2);
-	t("csvdb_list_records - page 3 limit 2", sizeof($records) == 2 &&
+	$records = csvdb_list($config, 3, 2);
+	t("csvdb_list - page 3 limit 2", sizeof($records) == 2 &&
 							$records[5]['r_id'] == 5 && $records[5]['name'] == 'c-id' && $records[5]['username'] == 'c-user-partial-updated' &&
 							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
-	$records = csvdb_list_records($config, 4, 2);
-	t("csvdb_list_records - page 4 limit 2", sizeof($records) == 0);
-	$records = csvdb_list_records($config, 100, 10);
-	t("csvdb_list_records - page 100", sizeof($records) == 0);
+	$records = csvdb_list($config, 4, 2);
+	t("csvdb_list - page 4 limit 2", sizeof($records) == 0);
+	$records = csvdb_list($config, 100, 10);
+	t("csvdb_list - page 100", sizeof($records) == 0);
 
-	$records = csvdb_fetch_records($config, [3, 6]);
-	t("csvdb_fetch_records - [3, 6]", sizeof($records) == 2 &&
+	$records = csvdb_fetch($config, [3, 6]);
+	t("csvdb_fetch - [3, 6]", sizeof($records) == 2 &&
 							$records[3]['r_id'] == 3 && $records[3]['name'] == 'a-id' && $records[3]['username'] == 'example-user' &&
 							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
 	// Transformations
-	$record = csvdb_read_record($config, 1);
+	$record = csvdb_read($config, 1);
 	t("transformations_callback", $record['computed_value'] == 'b - a');
 
 	// UTF
-	csvdb_create_record($config, [name=>"🐶🐱🐭", username=>"🐴🦄🐝", meta=>[UTF=>true, '2bytes' => '1char']]);
-	csvdb_create_record($config, [name=>"Example", username=>"user", meta=>[UTF=>false]]);
-	$record = csvdb_read_record($config, 10);
-	t("csvdb_read_record", $record['r_id'] == 10 && $record['name'] == 'Example' && $record['username'] == 'user');
+	csvdb_create($config, [name=>"🐶🐱🐭", username=>"🐴🦄🐝", meta=>[UTF=>true, '2bytes' => '1char']]);
+	csvdb_create($config, [name=>"Example", username=>"user", meta=>[UTF=>false]]);
+	$record = csvdb_read($config, 10);
+	t("csvdb_read", $record['r_id'] == 10 && $record['name'] == 'Example' && $record['username'] == 'user');
 }
 
 
@@ -201,26 +202,25 @@ function test_csvdb( )
 	global $config;
 	$csv_filepath = _csvdb_is_valid_config($config);
 
-	csvdb_create_table($config);
-	t("csvdb_create_table", file_exists($csv_filepath));
+	t("csvdb_create_table", csvdb_create_table($config) && is_file($csv_filepath) && is_dir($config['data_dir'] . '/__csvdb_cache'));
 
 	$csv_contents = file_get_contents($csv_filepath);
 
 	t("csvdb_create_table - row length", strlen($csv_contents) == 1010);
 
-	csvdb_search_records($config, 'search_cache_key', false);
-	$records = csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
-	t("csvdb_search_records", sizeof($records) == 2 && 
+	csvdb_search($config, 'search_cache_key', false);
+	$records = csvdb_search($config, 'search_cache_key', '_test_csvdb_search_cb');
+	t("csvdb_search", sizeof($records) == 2 && 
 							$records[0]['r_id'] == 3 && $records[0]['username'] == 'example-user' &&
 							$records[1]['r_id'] == 4 && $records[1]['username'] == 'example2-user'
 						);
 
 	// Should read from cache
-	csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
-	csvdb_search_records($config, 'search_cache_key', false);
+	csvdb_search($config, 'search_cache_key', '_test_csvdb_search_cb');
+	csvdb_search($config, 'search_cache_key', false);
 	// Should create cache
-	csvdb_search_records($config, 'search_cache_key', '_test_csvdb_search_cb');
-	csvdb_search_records($config, 'search_cache_key', false);
+	csvdb_search($config, 'search_cache_key', '_test_csvdb_search_cb');
+	csvdb_search($config, 'search_cache_key', false);
 }
 
 
@@ -255,17 +255,70 @@ function test_csvdb_large_record()
 		"auto_timestamps" => true
 	];
 
-	for ($i=1; $i <= 1000; $i++) {
-		$id = csvdb_create_record($table_large, [name=>"id-$i", username=>"example-user-$i"]);
-		t("large_record_csvdb_create_record", $id == $i, false);
-		$record = csvdb_read_record($table_large, $id);
-		t("large_record_csvdb_read_record", $record['r_id'] == $i && $record['name']=="id-$i" && $record['username']=="example-user-$i", false);
+	for ($i=1; $i <= 10000; $i++) {
+		$id = csvdb_create($table_large, [name=>"id-$i", username=>"example-user-$i"]);
+		t("large_record_csvdb_create", $id == $i, false);
+		$record = csvdb_read($table_large, $id);
+		t("large_record_csvdb_read", $record['r_id'] == $i && $record['name']=="id-$i" && $record['username']=="example-user-$i", false);
 	}
 
-	t("large_record_csvdb_record_size", csvdb_last_record_id($table_large) == 1000);
+	t("large_record_csvdb_record_size", csvdb_last_r_id($table_large) == 10000);
 }
 
 
+
+
+
+function test_csvdb_text_column()
+{
+	global $config;
+
+	@unlink(_csvdb_text_filepath($config, 'notes'));
+
+	// next_offset = prev_offset + prev_length + 2 + 1
+
+	$ref = csvdb_text_create($config, 'notes', str_repeat("This is first example text.\n", 3));
+	t('csvdb_text_create', $ref[0] == 0 && $ref[1] == 84);
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_read', $text == str_repeat("This is first example text.\n", 3));
+	$ref = csvdb_text_update($config, 'notes', $ref, str_repeat("This is first example text.\n", 2));
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_update', $text == str_repeat("This is first example text.\n", 2));
+	t('csvdb_text_delete', csvdb_text_delete($config, 'notes', $ref) && csvdb_text_read($config, 'notes', $ref) == str_repeat(" ", $ref[1]));
+
+
+	$ref = csvdb_text_create($config, 'notes', str_repeat("This is second example text.\n", 5));
+	t('csvdb_text_create', $ref[0] == 86 && $ref[1] == 145);
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_read', $text == str_repeat("This is second example text.\n", 5));
+	$ref = csvdb_text_update($config, 'notes', $ref, str_repeat("This is second example text.\n", 2));
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_update', $text == str_repeat("This is second example text.\n", 2));
+	t('csvdb_text_delete', csvdb_text_delete($config, 'notes', $ref) && csvdb_text_read($config, 'notes', $ref) == str_repeat(" ", $ref[1]));
+
+
+	$ref = csvdb_text_create($config, 'notes', str_repeat("This is third example text.\n", 7));
+	t('csvdb_text_create', $ref[0] == 233 && $ref[1] == 196);
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_read', $text == str_repeat("This is third example text.\n", 7));
+	$ref = csvdb_text_update($config, 'notes', $ref, str_repeat("This is third example text.\n", 2));
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_update', $text == str_repeat("This is third example text.\n", 2));
+	t('csvdb_text_delete', csvdb_text_delete($config, 'notes', $ref) && csvdb_text_read($config, 'notes', $ref) == str_repeat(" ", $ref[1]));
+
+
+	// Update appends at end, does not fit in existing region
+	$ref = csvdb_text_create($config, 'notes', str_repeat("This is fourth example text.\n", 7));
+	$ref2 = csvdb_text_create($config, 'notes', str_repeat("This is fifth example text.\n", 2));
+	t('csvdb_text_create', $ref[0] == 431 && $ref[1] == 203);
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_read', $text == str_repeat("This is fourth example text.\n", 7));
+	$ref = csvdb_text_update($config, 'notes', $ref, str_repeat("This is fourth example text.\n", 9));
+	$text = csvdb_text_read($config, 'notes', $ref);
+	t('csvdb_text_update', $text == str_repeat("This is fourth example text.\n", 9));
+	t('csvdb_text_delete', csvdb_text_delete($config, 'notes', $ref) && csvdb_text_read($config, 'notes', $ref) == str_repeat(" ", $ref[1]));
+	csvdb_text_delete($config, 'notes', $ref2);
+}
 
 
 
@@ -337,6 +390,7 @@ if($_GET['test'] == 'core'){
 	test_csvdb_core();
 	test_csvdb();
 	test_csvdb_large_record();
+	test_csvdb_text_column();
 }
 
 print_csv();

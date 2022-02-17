@@ -53,6 +53,12 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 	* Regular string, analogous to varchar.
 5. JSON
 	* Indexed array or associative array.
+6. Text
+	* String with any variable length.
+	* Stored in a single different file.
+	* Implements mailbox style text file.
+	* Returns reference to entry: [start_offset, length].
+	* Store in json column manually.
 
 
 ## Example configuration:
@@ -100,40 +106,43 @@ function csvdb_test_transformations_callback($values, $t) {
 
 This is the core of CSVDB. It only implements essential CRUD functions.
 
-1. csvdb_create_record($t, $values)
+1. csvdb_create($t, $values)
 	* Adds a new record at the end.
 	* Accepts either indexed array or associative array.
 
-2. csvdb_read_record($t, $r_id)
+2. csvdb_read($t, $r_id)
 	* Return associative array of the record at r_id.
 	* Returns 0 for soft-deleted record, and false for hard-deleted.
 
-3. csvdb_update_record($t, $r_id, $values)
+3. csvdb_update($t, $r_id, $values)
 	* Update a record at record at r_id.
 	* Values can be indexed array or associative array.
 	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
 
-4. csvdb_delete_record($t, $r_id, $hard_delete=false)
+4. csvdb_delete($t, $r_id, $hard_delete=false)
 	* Deletes a record by r_id.
 	* Default is soft delete, i.e data is not removed and record can be restored.
 	* With hard delete all values are removed permanently.
 	* Deleted records remain in the table, for r_ids to remain the same.
 
-5. csvdb_list_records($t, $page=1, $limit=-1)
+5. csvdb_list($t, $page=1, $limit=-1)
 	* Return all records in the table, with pagination if needed.
 
-6. csvdb_fetch_records($t, $r_ids)
+6. csvdb_fetch($t, $r_ids)
 	* Return multiple records by given r_ids array.
 
+7. csvdb_last_r_id($t)
+	* Returns the last r_id of the table.
 
-### Full (csvdb.php)
 
-This version contains the full functionality of csvdb. Core is included in this.
+### Extra (csvdb-extra.php)
+
+This version contains extra functionality of CSVDB.
 
 1. csvdb_create_table($t)
 	* Creates an empty table CSV file, and the cache folder.
 
-2. csvdb_search_records($t, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
+2. csvdb_search($t, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
 	* $search_fn is PHP callable type.
 	* Search function is called only once with all records from the given table.
 	* Return an associative array of filtered values.
@@ -145,7 +154,22 @@ This version contains the full functionality of csvdb. Core is included in this.
 		* a cached data view.
 	* More testing is needed for this.
 
+3. csvdb_text_create(&$t, $column_name, $text)
+	* Create entry in text column
+	* Returns reference to entry: [start_offset, length]
 
+4. csvdb_text_read(&$t, $column_name, $reference, $truncate=false)
+	* Return text from given reference
+
+5. csvdb_text_update(&$t, $column_name, $reference, $text)
+	* Update text at reference
+	* Returns updated reference
+
+6. csvdb_text_delete(&$t, $column_name, $reference)
+	* Deletes text at given reference
+
+7. Todo: csvdb_text_clean_file(&$t, $column_name)
+	* Rewrites file without deleted entries
 
 
 ## TODO:
@@ -159,9 +183,10 @@ This version contains the full functionality of csvdb. Core is included in this.
 * [x] Type casting (stringify and typecast)
 * [x] JSON column
 * [x] Boolean column
-* [ ] Text column
+* [x] Text column
 * [x] Record transformations callback (Add/remove/modify values before returning)
 * [x] Partial update argument is not needed. Auto-detect.
+* [x] csvdb-core, csvdb-extra, csvdb-full
 * [ ] Unique constraint / Search constraint
 * [ ] More documentation
 * [ ] More testing
@@ -175,10 +200,10 @@ This version contains the full functionality of csvdb. Core is included in this.
 
 
 
-## Notes/thoughts
+## Notes
 
 * PHP is C language
-* Object Oriented Programming was purposefully NOT choosen for 
+* Object Oriented Programming is purposefully NOT choosen for 
 	* simplicity
 	* clarity
 	* Level 1 code folding
