@@ -26,10 +26,10 @@ Project Status: Work in progress
 
 Example CSV file:
 ```
-a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1
-c,d,1643121629,1643121629,______	<- Record r_id: 2
-ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
-,,,,___________________________X	<- Hard deleted record, r_id: 4
+a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1 					(0 * 32 =  0 offset, 32 length)
+c,d,1643121629,1643121629,______	<- Record r_id: 2 					(1 * 32 = 32 offset, 32 length)
+ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3 	(2 * 32 = 64 offset, 32 length)
+,,,,___________________________X	<- Hard deleted record, r_id: 4 	(3 * 32 = 96 offset, 32 length)
 ```
 
 
@@ -55,10 +55,14 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3
 	* Indexed array or associative array.
 6. Text
 	* String with any variable length.
-	* Stored in a single different file.
+	* Stored in a different single file.
 	* Implements mailbox style text file.
 	* Returns reference to entry: [start_offset, length].
 	* Store in json column manually.
+7. TextFile
+	* Store in individual text files.
+	* Implement it yourself.
+	* `file_get_contents` and `file_put_contents`.
 
 
 ## Example configuration:
@@ -194,6 +198,7 @@ This version contains extra functionality of CSVDB.
 
 
 ## Issues
+
 * [x] Return new r_id for create_record.
 * [x] Wrong list records when only one record.
 
@@ -202,7 +207,7 @@ This version contains extra functionality of CSVDB.
 
 ## Notes
 
-* PHP is C language
+* PHP is C language.
 * Object Oriented Programming is purposefully NOT choosen for 
 	* simplicity
 	* clarity
@@ -216,11 +221,11 @@ This version contains extra functionality of CSVDB.
 	* C extension for PHP for more speed, in future.
 * Namespaces?
 * Targeted use case of building a C language web application as CGI/Apache module.
-	* Compiled languages are faster as the whole machine code is loaded into memory, which is superior to opcode.
+	* Compiled languages are faster as executable code is loaded into memory, which is superior to opcode.
 * Power of PHP is associative array
 	* Only data structure needed to implement in C.
 	* Implement C compiler extension for missing associative array syntax.
 	* Garbage collection is just calling `free` at the end of run loop.
 * C has `printf` for templating, PHP has `printf`.
 * C language is beautiful. There are only user defined functions.
-	* And so is PHP.
+	* PHP is C language. (docs are downlodable offline too).

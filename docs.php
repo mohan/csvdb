@@ -31,7 +31,7 @@ Usage:
 				Source
 				<ul>
 					<li><a href='?file=csvdb-core.php&amp;raw=1'>csvdb-core.php</a></li>
-					<li><a href='?file=csvdb.php&amp;raw=1'>csvdb.php</a></li>
+					<li><a href='?file=csvdb-extra.php&amp;raw=1'>csvdb-extra.php</a></li>
 				</ul>
 			</li>
 			<li>
