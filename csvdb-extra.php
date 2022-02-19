@@ -154,7 +154,7 @@ function csvdb_text_create(&$t, $column_name, $text)
 // Returns text
 function csvdb_text_read(&$t, $column_name, $reference, $length=false)
 {
-	if(!$reference || $reference[0] >= 0 || $reference[1] > 0) return false;
+	// if(!$reference || $reference[0] >= 0 || $reference[1] > 0) return false;
 
 	$filepath = _csvdb_text_filepath($t, $column_name);
 	$fp = fopen($filepath, 'r');
