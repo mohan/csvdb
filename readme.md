@@ -59,10 +59,9 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3 	(2 * 32 = 64 o
 	* Implements mailbox style text file.
 	* Returns reference to entry: [start_offset, length].
 	* Store in json column manually.
-7. TextFile
+7. TextFile (not built-in)
 	* Store in individual text files.
-	* Implement it yourself.
-	* `file_get_contents` and `file_put_contents`.
+	* Use PHP `file_get_contents` and `file_put_contents` as per your needs and dir structure.
 
 
 ## Example configuration:
@@ -224,8 +223,8 @@ This version contains extra functionality of CSVDB.
 	* Compiled languages are faster as executable code is loaded into memory, which is superior to opcode.
 * Power of PHP is associative array
 	* Only data structure needed to implement in C.
-	* Implement C compiler extension for missing associative array syntax.
+	* Implement C compiler extension for associative array syntax.
 	* Garbage collection is just calling `free` at the end of run loop.
 * C has `printf` for templating, PHP has `printf`.
 * C language is beautiful. There are only user defined functions.
-	* PHP is C language. (docs are downlodable offline too).
+	* PHP is C language. (Docs are downlodable offline too).
