@@ -12,7 +12,7 @@ Usage:
 <head>
 	<title>CSVDB<?php echo ': ' . $_GET['file']; ?></title>
 	<style>
-		body{ background:#f9f9f9; line-height:130%; margin:30px 0 100px 0; }
+		body{ background:#f9f9f9; font-size: 1em; line-height:130%; margin:30px 0 100px 0; }
 		h1,h2{ padding-bottom: 20px;  border-bottom:1px solid #ccc; }
 		pre{ tab-size:4; font-size: 115%; line-height:175%; }
 		.sourcecode .function_label, .sourcecode .curlybrace, .sourcecode .parenthesis, .sourcecode .bracket{ color: #007700; }
@@ -56,11 +56,12 @@ Usage:
 
 function sourcecode($text)
 {
-	return preg_replace([
-							"/\n(function)\s(.+)\((.*)\)/"
-						],
-						[
-						 	"\n<span class='function_label'>$1</span> <span class='function_name'>$2</span><span class='parenthesis'>(</span><span class='function_args'>$3</span><span class='parenthesis'>)</span>"
-						],
-						$text);
+	return preg_replace(
+	[
+		"/\n(function)\s(.+)\((.*)\)/"
+	],
+	[
+	 	"\n<span class='function_label'>$1</span> <span class='function_name'>$2</span><span class='parenthesis'>(</span><span class='function_args'>$3</span><span class='parenthesis'>)</span>"
+	],
+	$text);
 }

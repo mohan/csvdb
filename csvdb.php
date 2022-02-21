@@ -3,6 +3,7 @@
 // csvdb-core + csvdb-extra
 // 
 
+
 // License: GPL
 
 /***
@@ -147,24 +148,36 @@ function csvdb_delete(&$t, $r_id, $soft_delete=false)
 }
 
 
-function csvdb_list(&$t, $page=1, $limit=-1)
+function csvdb_list(&$t, $page=1, $limit=-1, $reverse_order=false)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
 	// First r_id
+	// max_record_width+1; +1 for new line
 	$r_id = ( $limit == -1 ? 0 : 
 				(($page - 1) * $limit * ($config['max_record_width'] + 1)) / ($config['max_record_width'] + 1)
 			) + 1;
+
+	$last_r_id = csvdb_last_r_id($t);
+	if($reverse_order){
+		$r_id = $last_r_id - $r_id + 1;
+	}
 
 	$fp = fopen($filepath, 'r');
 	$records = [];
 	$r_ids = [];
 
-	for ($i=0, $j=0; $limit == -1 ? true : $i < $limit; $i++, $j=0, $r_id++) {
+	for (
+			$i=0;
+			$r_id >= 1 && $r_id <= $last_r_id;
+			$i++,	$reverse_order ? $r_id-- : $r_id++
+	) {
+		if($limit != -1 && $i > $limit - 1) break;
+
 		$record = _csvdb_read_record_from_fp($t, $fp, $r_id);
-		if($record === false || $record === 0) continue;
 		if($record == -1) break;
+		if($record === false || $record === 0) continue;
 
 		$records[$r_id] = $record;
 		$r_ids[] = $r_id;
@@ -348,7 +361,7 @@ function _csvdb_csv_arr_str_length($values)
 		$i += strlen($value);
 		$i += substr_count($value, "\""); // Double quote escape, Count twice, escape chars
 
-		if(strpos($value, "\"") !== false || strpos($value, "[") !== false) $i += 2; // enclosure "" or [
+		if( preg_match_all("/[\s\[\"]/", $value) > 0 ) $i += 2; // enclosure "" or [
 
 		$i++; // ,
 	}
@@ -379,6 +392,12 @@ function _csvdb_log(&$t, $message)
 {
 	if($t['log']) trigger_error(basename($t['tablename'], ".csv") . ': ' . $message);
 }
+
+
+
+
+
+
 
 
 
@@ -545,8 +564,8 @@ function csvdb_text_create(&$t, $column_name, $text)
 // Returns text
 function csvdb_text_read(&$t, $column_name, $reference, $length=false)
 {
-	if(!$reference || $reference[0] >= 0 || $reference[1] > 0) return false;
-	
+	if(!$reference) return false;
+
 	$filepath = _csvdb_text_filepath($t, $column_name);
 	$fp = fopen($filepath, 'r');
 	fseek($fp, $reference[0]);

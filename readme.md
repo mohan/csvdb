@@ -26,19 +26,19 @@ Project Status: Work in progress
 
 Example CSV file:
 ```
-a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1 					(0 * 32 =  0 offset, 32 length)
-c,d,1643121629,1643121629,______	<- Record r_id: 2 					(1 * 32 = 32 offset, 32 length)
-ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3 	(2 * 32 = 64 offset, 32 length)
-,,,,___________________________X	<- Hard deleted record, r_id: 4 	(3 * 32 = 96 offset, 32 length)
+a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1					(0 * 32 =  0 offset, 32 length)
+c,d,1643121629,1643121629,______	<- Record r_id: 2					(1 * 32 = 32 offset, 32 length)
+ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3		(2 * 32 = 64 offset, 32 length)
+,,,,___________________________X	<- Hard deleted record, r_id: 4		(3 * 32 = 96 offset, 32 length)
 ```
 
 
 ## Note
 
-* Database maintenance like backup, archiving and other operations are manual.
-* Writes are fast. For a write updates centric application a regular database is recommended.
 * **Not tested**, do not use.
 * Please feel free to implement it yourself.
+* Database maintenance like backup, archiving and other operations are manual.
+* Writes are fast. For a write updates centric application a regular database is recommended.
 
 
 ## Datatypes
@@ -128,7 +128,7 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 	* With hard delete all values are removed permanently.
 	* Deleted records remain in the table, for r_ids to remain the same.
 
-5. csvdb_list($t, $page=1, $limit=-1)
+5. csvdb_list($t, $page=1, $limit=-1, $reverse_order=false)
 	* Return all records in the table, with pagination if needed.
 
 6. csvdb_fetch($t, $r_ids)
@@ -190,6 +190,7 @@ This version contains extra functionality of CSVDB.
 * [x] Record transformations callback (Add/remove/modify values before returning)
 * [x] Partial update argument is not needed. Auto-detect.
 * [x] csvdb-core, csvdb-extra, csvdb-full
+* [x] List in reverse order
 * [ ] Unique constraint / Search constraint
 * [ ] More documentation
 * [ ] More testing
