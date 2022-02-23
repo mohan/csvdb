@@ -18,8 +18,8 @@ Implemented functions:
 2. csvdb_text_read(&$t, $column_name, $reference, $truncate=false)
 3. csvdb_text_update(&$t, $column_name, $reference, $text)
 4. csvdb_text_delete(&$t, $column_name, $reference)
-5. csvdb_text_fill_record(&$t, $column_names, &$record)
-6. csvdb_text_fill_records(&$t, $column_names, &$records)
+5. csvdb_text_fill_record(&$t, $column_names, &$record, $length=false)
+6. csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
 7. Todo: csvdb_text_clean_file(&$t, $column_name)
 
 ***/
@@ -149,7 +149,11 @@ function csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
 
 function _csvdb_text_filepath(&$t, $column_name)
 {
-	return $t['data_dir'] . '/' . basename($t['tablename'], '.csv') . '_' . $column_name . '.text';
+	if($t['text_filename']){
+		return $t['data_dir'] . '/' . basename($t['text_filename'], '.text') . '.text';
+	} else {
+		return $t['data_dir'] . '/' . basename($t['tablename'], '.csv') . '_' . $column_name . '.text';
+	}
 }
 
 

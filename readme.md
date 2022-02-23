@@ -143,6 +143,7 @@ This version contains extra functionality of CSVDB.
 1. csvdb_text_create(&$t, $column_name, $text)
 	* Create entry in text column
 	* Returns reference to entry: [start_offset, length]
+	* Use `text_filename` in `$t` to define a custom filename (ex: full_text.text)
 
 2. csvdb_text_read(&$t, $column_name, $reference, $truncate=false)
 	* Return text from given reference
@@ -154,7 +155,13 @@ This version contains extra functionality of CSVDB.
 4. csvdb_text_delete(&$t, $column_name, $reference)
 	* Deletes text at given reference
 
-5. Todo: csvdb_text_clean_file(&$t, $column_name)
+5. csvdb_text_fill_record(&$t, $column_names, &$record, $length=false)
+	* Fill a single record with text in place of references
+
+6. csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
+	* Fill multiple records with text in place of references
+
+7. Todo: csvdb_text_clean_file(&$t, $column_name)
 	* Rewrites file without deleted entries
 
 
