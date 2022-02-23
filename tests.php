@@ -84,6 +84,9 @@ function test_csvdb_core( )
 							!array_key_exists('notes', $record)
 						);
 
+	$record = csvdb_read($config, 3, ['r_id', 'name']);
+	t("csvdb_read selected columns", sizeof($record) == 2 && $record['r_id'] == 3 && $record['name'] == 'a-id');
+
 	csvdb_create($config, [name=>"b-id", username=>"example2-user", "c", "d", "e", "f", "e"]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create - row length", strlen($csv_contents) == 404);
@@ -113,7 +116,7 @@ function test_csvdb_core( )
 	csvdb_delete($config, 7, true);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_delete - soft delete", strpos($csv_contents, "___x", 606) > 606);
-	t("csvdb_read - soft deleted record", csvdb_read($config, 7) === 0);
+	t("csvdb_read - soft deleted record", csvdb_read($config, 7) === false);
 
 	// Hard delete
 	csvdb_create($config, [name=>"f", username=>"f-user"]);
@@ -123,7 +126,7 @@ function test_csvdb_core( )
 	t("csvdb_read - hard deleted record", csvdb_read($config, 8) === false);
 
 
-	$records = csvdb_list($config, 1, 10);
+	$records = csvdb_list($config, [], false, 1, 10);
 	t("csvdb_list - all pages", sizeof($records) == 6 &&
 							$records[1]['r_id'] == 1 && $records[1]['name'] == 'a' && $records[1]['username'] == 'b' &&
 							$records[2]['r_id'] == 2 && $records[2]['name'] == 'c' && $records[2]['username'] == 'd' &&
@@ -131,27 +134,27 @@ function test_csvdb_core( )
 							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
-	$records = csvdb_list($config, 1, 2);
+	$records = csvdb_list($config, [], false, 1, 2);
 	t("csvdb_list - page 1 limit 2", sizeof($records) == 2 &&
 							$records[1]['r_id'] == 1 && $records[1]['name'] == 'a' && $records[1]['username'] == 'b' &&
 							$records[2]['r_id'] == 2 && $records[2]['name'] == 'c' && $records[2]['username'] == 'd'
 						);
 
-	$records = csvdb_list($config, 2, 2);
+	$records = csvdb_list($config, [], false, 2, 2);
 	t("csvdb_list - page 2 limit 2", sizeof($records) == 2 &&
 							$records[3]['r_id'] == 3 && $records[3]['name'] == 'a-id' && $records[3]['username'] == 'example-user' &&
 							$records[4]['r_id'] == 4 && $records[4]['name'] == 'b-id' && $records[4]['username'] == 'example2-user'
 						);
 
-	$records = csvdb_list($config, 3, 2);
+	$records = csvdb_list($config, [], false, 3, 2);
 	t("csvdb_list - page 3 limit 2", sizeof($records) == 2 &&
 							$records[5]['r_id'] == 5 && $records[5]['name'] == 'c-id' && $records[5]['username'] == 'c-user-partial-updated' &&
 							$records[6]['r_id'] == 6 && $records[6]['name'] == 'd-id' && $records[6]['username'] == 'd-user'
 						);
 
-	$records = csvdb_list($config, 4, 2);
+	$records = csvdb_list($config, [], false, 4, 2);
 	t("csvdb_list - page 4 limit 2", sizeof($records) == 0);
-	$records = csvdb_list($config, 100, 10);
+	$records = csvdb_list($config, [], false, 100, 10);
 	t("csvdb_list - page 100", sizeof($records) == 0);
 
 	$records = csvdb_fetch($config, [3, 6]);
@@ -183,61 +186,15 @@ function csvdb_test_validations_callback($r_id, $values, $config)
 
 function csvdb_test_transformations_callback($values, $config)
 {
+	// If not selected column
+	if(!$values['username']) return [];
+
 	return [
 		'computed_value' => $values['username'] . ' - ' . $values['name']
 	];
 }
 
 
-
-
-
-
-
-
-
-
-function test_csvdb( )
-{
-	global $config;
-	$csv_filepath = _csvdb_is_valid_config($config);
-
-	t("csvdb_create_table", csvdb_create_table($config) && is_file($csv_filepath) && is_dir($config['data_dir'] . '/__csvdb_cache'));
-
-	$csv_contents = file_get_contents($csv_filepath);
-
-	t("csvdb_create_table - row length", strlen($csv_contents) == 1010);
-
-	csvdb_search($config, 'search_cache_key', false);
-	$records = csvdb_search($config, 'search_cache_key', '_test_csvdb_search_cb');
-	t("csvdb_search", sizeof($records) == 2 && 
-							$records[0]['r_id'] == 3 && $records[0]['username'] == 'example-user' &&
-							$records[1]['r_id'] == 4 && $records[1]['username'] == 'example2-user'
-						);
-
-	// Should read from cache
-	csvdb_search($config, 'search_cache_key', '_test_csvdb_search_cb');
-	csvdb_search($config, 'search_cache_key', false);
-	// Should create cache
-	csvdb_search($config, 'search_cache_key', '_test_csvdb_search_cb');
-	csvdb_search($config, 'search_cache_key', false);
-}
-
-
-function _test_csvdb_search_cb($records)
-{
-	// Username begins with "example"
-	$results = array_filter($records, function($record){
-		return strpos($record['username'], "example") === 0 ? true : false;
-	});
-
-	// Return results as an associative array
-	$search_results = array_map(function($result){
-		return [ 'r_id' => $result['r_id'], 'username' => $result['username'] ];
-	}, $results);
-
-	return $search_results;
-}
 
 
 
@@ -388,7 +345,6 @@ if($_GET['test'] == 'core'){
 	test_csvdb_core();
 } else {
 	test_csvdb_core();
-	test_csvdb();
 	test_csvdb_large_record();
 	test_csvdb_text_column();
 }

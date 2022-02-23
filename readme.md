@@ -11,23 +11,18 @@ Project Status: Work in progress
 * ~400 lines of PHP that implements ORM style database layer natively, *without SQL* and using only *CSV files*.
 	* PHP natively supports fgetcsv and fputcsv.
 	* No additional database software/extensions needed.
-	* Write your custom functions using CSVDB for each operation similar to SQL statements.
+	* Write your custom functions for each operation similar to SQL statements.
 * Implements `fixed width record` style.
 	* Seeking records is fast, as `record_ids (r_id)` are predictable (a multiplier of record width).
 * Fast for read operations (0s latency).
 	* Uses classic `fopen` instead of traditional sockets as in a regular database.
 	* For more speed, use a memory based file system for CSV file, and sync to disk.
-* Implements `search` function with caching, analogous to database index.
-	* Secondary keys like a custom id (hash or number) may be implemented using this.
-* Supports auto timestamps for `created_at` and `updated_at` columns.
-* Supports restorable soft delete and complete hard delete.
-* Built-in logging for tracking changes.
 
 
 Example CSV file:
 ```
-a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1					(0 * 32 =  0 offset, 32 length)
-c,d,1643121629,1643121629,______	<- Record r_id: 2					(1 * 32 = 32 offset, 32 length)
+a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1			(0 * 32 =  0 offset, 32 length)
+c,d,1643121629,1643121629,______	<- Record r_id: 2			(1 * 32 = 32 offset, 32 length)
 ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3		(2 * 32 = 64 offset, 32 length)
 ,,,,___________________________X	<- Hard deleted record, r_id: 4		(3 * 32 = 96 offset, 32 length)
 ```
@@ -39,6 +34,9 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3		(2 * 32 = 64 o
 * Please feel free to implement it yourself.
 * Database maintenance like backup, archiving and other operations are manual.
 * Writes are fast. For a write updates centric application a regular database is recommended.
+* Supports auto timestamps for `created_at` and `updated_at` columns.
+* Supports restorable soft delete and complete hard delete.
+* Built-in logging for tracking changes.
 
 
 ## Datatypes
@@ -113,7 +111,7 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 	* Adds a new record at the end.
 	* Accepts either indexed array or associative array.
 
-2. csvdb_read($t, $r_id)
+2. csvdb_read($t, $r_id, $columns=[])
 	* Return associative array of the record at r_id.
 	* Returns 0 for soft-deleted record, and false for hard-deleted.
 
@@ -128,10 +126,10 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 	* With hard delete all values are removed permanently.
 	* Deleted records remain in the table, for r_ids to remain the same.
 
-5. csvdb_list($t, $page=1, $limit=-1, $reverse_order=false)
+5. csvdb_list($t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 	* Return all records in the table, with pagination if needed.
 
-6. csvdb_fetch($t, $r_ids)
+6. csvdb_fetch($t, $r_ids, $columns=[])
 	* Return multiple records by given r_ids array.
 
 7. csvdb_last_r_id($t)
@@ -142,36 +140,21 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 
 This version contains extra functionality of CSVDB.
 
-1. csvdb_create_table($t)
-	* Creates an empty table CSV file, and the cache folder.
-
-2. csvdb_search($t, $cache_key, $search_fn, $page=1, $limit=-1, $optional_search_fn_args=NULL)
-	* $search_fn is PHP callable type.
-	* Search function is called only once with all records from the given table.
-	* Return an associative array of filtered values.
-	* All results will be cached and returned as the return value of `csvdb_search_records`.
-	* For subsequent calls, search function will not be called, as cache exists.
-	* To remove cache, call with `$search_fn` value `false`.
-	* This may be used for
-		* index such as - all r_ids for a user.
-		* a cached data view.
-	* More testing is needed for this.
-
-3. csvdb_text_create(&$t, $column_name, $text)
+1. csvdb_text_create(&$t, $column_name, $text)
 	* Create entry in text column
 	* Returns reference to entry: [start_offset, length]
 
-4. csvdb_text_read(&$t, $column_name, $reference, $truncate=false)
+2. csvdb_text_read(&$t, $column_name, $reference, $truncate=false)
 	* Return text from given reference
 
-5. csvdb_text_update(&$t, $column_name, $reference, $text)
+3. csvdb_text_update(&$t, $column_name, $reference, $text)
 	* Update text at reference
 	* Returns updated reference
 
-6. csvdb_text_delete(&$t, $column_name, $reference)
+4. csvdb_text_delete(&$t, $column_name, $reference)
 	* Deletes text at given reference
 
-7. Todo: csvdb_text_clean_file(&$t, $column_name)
+5. Todo: csvdb_text_clean_file(&$t, $column_name)
 	* Rewrites file without deleted entries
 
 
@@ -201,6 +184,7 @@ This version contains extra functionality of CSVDB.
 
 * [x] Return new r_id for create_record.
 * [x] Wrong list records when only one record.
+* [ ] Return false instead of -1 for record error
 
 
 

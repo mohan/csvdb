@@ -11,11 +11,11 @@ For full functionality use csvdb.php.
 
 Implemented functions:
 1. csvdb_create(&$t, $values)
-2. csvdb_read(&$t, $r_id)
+2. csvdb_read(&$t, $r_id, $columns=[])
 3. csvdb_update(&$t, $r_id, $values)
 4. csvdb_delete(&$t, $r_id, $soft_delete=false)
-5. csvdb_list(&$t, $page=1, $limit=-1)
-6. csvdb_fetch(&$t, $r_ids)
+5. csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
+6. csvdb_fetch(&$t, $r_ids, $columns=[])
 7. csvdb_last_r_id(&$t)
 
 Example configuration:
@@ -53,20 +53,20 @@ function csvdb_create(&$t, $values)
 }
 
 
-function csvdb_read(&$t, $r_id)
+function csvdb_read(&$t, $r_id, $columns=[])
 {
 	$filepath = _csvdb_is_valid_config($t);
-	if(!$filepath) return false;
+	if(!$filepath || !is_file($filepath)) return false;
 
 	$fp = fopen($filepath, 'r');
 	
-	$values = _csvdb_read_record_from_fp($t, $fp, $r_id);
+	$values = _csvdb_read_record_from_fp($t, $fp, $r_id, $columns);
 	
 	fclose($fp);
 
 	_csvdb_log($t, "read [r_id: $r_id]");
 
-	return $values;
+	return $values == -1 || $values === 0 || $values === false ? false : $values;
 }
 
 
@@ -143,10 +143,10 @@ function csvdb_delete(&$t, $r_id, $soft_delete=false)
 }
 
 
-function csvdb_list(&$t, $page=1, $limit=-1, $reverse_order=false)
+function csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 {
 	$filepath = _csvdb_is_valid_config($t);
-	if(!$filepath) return false;
+	if(!$filepath || !is_file($filepath)) return [];
 
 	// First r_id
 	// max_record_width+1; +1 for new line
@@ -170,32 +170,31 @@ function csvdb_list(&$t, $page=1, $limit=-1, $reverse_order=false)
 	) {
 		if($limit != -1 && $i > $limit - 1) break;
 
-		$record = _csvdb_read_record_from_fp($t, $fp, $r_id);
+		$record = _csvdb_read_record_from_fp($t, $fp, $r_id, $columns);
 		if($record == -1) break;
 		if($record === false || $record === 0) continue;
 
 		$records[$r_id] = $record;
-		$r_ids[] = $r_id;
 	}
 
 	fclose($fp);
 
-	_csvdb_log($t, "list " . sizeof($r_ids) . " records");
+	_csvdb_log($t, "list " . sizeof($records) . " records");
 
 	return $records;
 }
 
 
-function csvdb_fetch(&$t, $r_ids)
+function csvdb_fetch(&$t, $r_ids, $columns=[])
 {
 	$filepath = _csvdb_is_valid_config($t);
-	if(!$filepath) return false;
+	if(!$filepath || !is_file($filepath)) return [];
 
 	$fp = fopen($filepath, 'r');
 	$records = [];
 
 	foreach ($r_ids as $r_id) {
-		$record = _csvdb_read_record_from_fp($t, $fp, $r_id);
+		$record = _csvdb_read_record_from_fp($t, $fp, $r_id, $columns);
 		if($record === false || $record === 0) continue;
 		if($record == -1) break;
 
@@ -215,7 +214,7 @@ function csvdb_last_r_id(&$t)
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
-	if(!$t['__last_record_r_id']){
+	if(!$t['__last_record_r_id'] && is_file($filepath)){
 		$t['__last_record_r_id'] = filesize($filepath) / ($t['max_record_width'] + 1);
 	}
 
@@ -244,7 +243,7 @@ function _csvdb_seek_id(&$t, $fp, $r_id)
 }
 
 
-function _csvdb_read_record_from_fp(&$t, $fp, $r_id)
+function _csvdb_read_record_from_fp(&$t, $fp, $r_id, $columns)
 {
 	_csvdb_seek_id($t, $fp, $r_id);
 	
@@ -264,6 +263,12 @@ function _csvdb_read_record_from_fp(&$t, $fp, $r_id)
 	if($t['auto_timestamps']){
 		$record['created_at'] = intval($values[$i++]);
 		$record['updated_at'] = intval($values[$i++]);
+	}
+
+	// Select only given columns
+	if(sizeof($columns) > 0)
+	foreach ($record as $column => $value) {
+		if(!in_array($column, $columns)) unset($record[$column]);
 	}
 
 	_csvdb_typecast_values($t, $record);
@@ -338,6 +343,7 @@ function _csvdb_stringify_values(&$t, &$values)
 function _csvdb_typecast_values(&$t, &$values)
 {
 	foreach ($t['columns'] as $column => $type) {
+		if(isset($values[$column]))
 		switch($type){
 			case 'bool': $values[$column] = boolval($values[$column]); break;
 			case 'int': $values[$column] = intval($values[$column]); break;
@@ -356,7 +362,7 @@ function _csvdb_csv_arr_str_length($values)
 		$i += strlen($value);
 		$i += substr_count($value, "\""); // Double quote escape, Count twice, escape chars
 
-		if( preg_match_all("/[\s\[\"]/", $value) > 0 ) $i += 2; // enclosure "" or [
+		if( preg_match_all("/[[:blank:][:cntrl:]\[\"]/", $value) > 0 ) $i += 2; // enclosure "" or [
 
 		$i++; // ,
 	}
@@ -387,3 +393,9 @@ function _csvdb_log(&$t, $message)
 {
 	if($t['log']) trigger_error(basename($t['tablename'], ".csv") . ': ' . $message);
 }
+
+
+
+
+// Make sure there is no newline at the end
+?>
