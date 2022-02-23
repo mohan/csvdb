@@ -11,12 +11,12 @@ For full functionality use csvdb.php.
 
 Implemented functions:
 1. csvdb_create(&$t, $values)
-2. csvdb_read(&$t, $r_id, $columns=[])
-3. csvdb_update(&$t, $r_id, $values)
-4. csvdb_delete(&$t, $r_id, $soft_delete=false)
+2. csvdb_read(&$t, $id, $columns=[])
+3. csvdb_update(&$t, $id, $values)
+4. csvdb_delete(&$t, $id, $soft_delete=false)
 5. csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
-6. csvdb_fetch(&$t, $r_ids, $columns=[])
-7. csvdb_last_r_id(&$t)
+6. csvdb_fetch(&$t, $ids, $columns=[])
+7. csvdb_last_id(&$t)
 
 Example configuration:
 $table_config = [
@@ -40,42 +40,42 @@ function csvdb_create(&$t, $values)
 	if(!$final_values) return false;
 
 	$fp = fopen($filepath, 'a');
-	csvdb_last_r_id($t);
+	csvdb_last_id($t);
 	_csvdb_write_csv($fp, $final_values);
 	fclose($fp);
 
-	$t['__last_record_r_id'] += 1;
-	$r_id = $t['__last_record_r_id'];
+	$t['__last_record_id'] += 1;
+	$id = $t['__last_record_id'];
 
-	_csvdb_log($t, "create [r_id: $r_id] with values [" . join(',', $values) . "]");
+	_csvdb_log($t, "create [id: $id] with values [" . join(',', $values) . "]");
 
-	return $r_id;
+	return $id;
 }
 
 
-function csvdb_read(&$t, $r_id, $columns=[])
+function csvdb_read(&$t, $id, $columns=[])
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath || !is_file($filepath)) return false;
 
 	$fp = fopen($filepath, 'r');
 	
-	$values = _csvdb_read_record_from_fp($t, $fp, $r_id, $columns);
+	$values = _csvdb_read_record_from_fp($t, $fp, $id, $columns);
 	
 	fclose($fp);
 
-	_csvdb_log($t, "read [r_id: $r_id]");
+	_csvdb_log($t, "read [id: $id]");
 
 	return $values == -1 || $values === 0 || $values === false ? false : $values;
 }
 
 
-function csvdb_update(&$t, $r_id, $values)
+function csvdb_update(&$t, $id, $values)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
-	$record = csvdb_read($t, $r_id);
+	$record = csvdb_read($t, $id);
 	if(!$record) return false;
 
 	// Overwrite record values from values argument
@@ -91,23 +91,23 @@ function csvdb_update(&$t, $r_id, $values)
 	}
 
 	$fp = fopen($filepath, 'c');
-	_csvdb_seek_id($t, $fp, $r_id);
+	_csvdb_seek_id($t, $fp, $id);
 	_csvdb_write_csv($fp, $record);
 	fclose($fp);
 
-	_csvdb_log($t, "update [r_id: $r_id] with [" . join(',', $values) . "]");
+	_csvdb_log($t, "update [id: $id] with [" . join(',', $values) . "]");
 
 	return true;
 }
 
 
-function csvdb_delete(&$t, $r_id, $soft_delete=false)
+function csvdb_delete(&$t, $id, $soft_delete=false)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
 	$fp = fopen($filepath, 'c+');
-	$record_position_id = _csvdb_seek_id($t, $fp, $r_id);
+	$record_position_id = _csvdb_seek_id($t, $fp, $id);
 
 	fseek($fp, $record_position_id + $t['max_record_width'] - 1);
 	if(fgetc($fp) != '_'){
@@ -137,7 +137,7 @@ function csvdb_delete(&$t, $r_id, $soft_delete=false)
 
 	fclose($fp);
 
-	_csvdb_log($t, ($soft_delete ? 'soft' : 'hard') . " delete record [r_id: $r_id]");
+	_csvdb_log($t, ($soft_delete ? 'soft' : 'hard') . " delete record [id: $id]");
 
 	return true;
 }
@@ -148,33 +148,33 @@ function csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath || !is_file($filepath)) return [];
 
-	// First r_id
+	// First id
 	// max_record_width+1; +1 for new line
-	$r_id = ( $limit == -1 ? 0 : 
+	$id = ( $limit == -1 ? 0 : 
 				(($page - 1) * $limit * ($config['max_record_width'] + 1)) / ($config['max_record_width'] + 1)
 			) + 1;
 
-	$last_r_id = csvdb_last_r_id($t);
+	$last_id = csvdb_last_id($t);
 	if($reverse_order){
-		$r_id = $last_r_id - $r_id + 1;
+		$id = $last_id - $id + 1;
 	}
 
 	$fp = fopen($filepath, 'r');
 	$records = [];
-	$r_ids = [];
+	$ids = [];
 
 	for (
 			$i=0;
-			$r_id >= 1 && $r_id <= $last_r_id;
-			$i++,	$reverse_order ? $r_id-- : $r_id++
+			$id >= 1 && $id <= $last_id;
+			$i++,	$reverse_order ? $id-- : $id++
 	) {
 		if($limit != -1 && $i > $limit - 1) break;
 
-		$record = _csvdb_read_record_from_fp($t, $fp, $r_id, $columns);
+		$record = _csvdb_read_record_from_fp($t, $fp, $id, $columns);
 		if($record == -1) break;
 		if($record === false || $record === 0) continue;
 
-		$records[$r_id] = $record;
+		$records[$id] = $record;
 	}
 
 	fclose($fp);
@@ -185,7 +185,7 @@ function csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 }
 
 
-function csvdb_fetch(&$t, $r_ids, $columns=[])
+function csvdb_fetch(&$t, $ids, $columns=[])
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath || !is_file($filepath)) return [];
@@ -193,32 +193,32 @@ function csvdb_fetch(&$t, $r_ids, $columns=[])
 	$fp = fopen($filepath, 'r');
 	$records = [];
 
-	foreach ($r_ids as $r_id) {
-		$record = _csvdb_read_record_from_fp($t, $fp, $r_id, $columns);
+	foreach ($ids as $id) {
+		$record = _csvdb_read_record_from_fp($t, $fp, $id, $columns);
 		if($record === false || $record === 0) continue;
 		if($record == -1) break;
 
-		$records[$r_id] = $record;
+		$records[$id] = $record;
 	}
 
 	fclose($fp);
 
-	_csvdb_log($t, "fetch [r_id: " . (sizeof($r_ids) > 0 ? join(',', $r_ids) : 'NULL') . "]");
+	_csvdb_log($t, "fetch [id: " . (sizeof($ids) > 0 ? join(',', $ids) : 'NULL') . "]");
 
 	return $records;
 }
 
 
-function csvdb_last_r_id(&$t)
+function csvdb_last_id(&$t)
 {
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
-	if(!$t['__last_record_r_id'] && is_file($filepath)){
-		$t['__last_record_r_id'] = filesize($filepath) / ($t['max_record_width'] + 1);
+	if(!$t['__last_record_id'] && is_file($filepath)){
+		$t['__last_record_id'] = filesize($filepath) / ($t['max_record_width'] + 1);
 	}
 
-	return $t['__last_record_r_id'];
+	return $t['__last_record_id'];
 }
 
 
@@ -234,18 +234,18 @@ function _csvdb_is_valid_config(&$t)
 
 
 // Seek fp to record_id position
-function _csvdb_seek_id(&$t, $fp, $r_id)
+function _csvdb_seek_id(&$t, $fp, $id)
 {
-	$r_id_position = ($r_id - 1) * $t['max_record_width'] + ($r_id - 1);
-	fseek($fp, $r_id_position);
+	$id_position = ($id - 1) * $t['max_record_width'] + ($id - 1);
+	fseek($fp, $id_position);
 
-	return $r_id_position;
+	return $id_position;
 }
 
 
-function _csvdb_read_record_from_fp(&$t, $fp, $r_id, $columns)
+function _csvdb_read_record_from_fp(&$t, $fp, $id, $columns)
 {
-	_csvdb_seek_id($t, $fp, $r_id);
+	_csvdb_seek_id($t, $fp, $id);
 	
 	$values = fgetcsv($fp, $t['max_record_width']);
 	if(!$values) return -1;
@@ -255,7 +255,7 @@ function _csvdb_read_record_from_fp(&$t, $fp, $r_id, $columns)
 	if($delete_flag[-1] == 'X') return false;
 
 	$i = 0;
-	$record['r_id'] = $r_id;
+	$record['id'] = $id;
 	foreach ($t['columns'] as $column=>$type) {
 		$record[$column] = $values[$i++];
 	}

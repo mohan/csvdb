@@ -13,7 +13,7 @@ Project Status: Work in progress
 	* No additional database software/extensions needed.
 	* Write your custom functions for each operation similar to SQL statements.
 * Implements `fixed width record` style.
-	* Seeking records is fast, as `record_ids (r_id)` are predictable (a multiplier of record width).
+	* Seeking records is fast, as `record_ids (id)` are predictable (a multiplier of record width).
 * Fast for read operations (0s latency).
 	* Uses classic `fopen` instead of traditional sockets as in a regular database.
 	* For more speed, use a memory based file system for CSV file, and sync to disk.
@@ -21,10 +21,10 @@ Project Status: Work in progress
 
 Example CSV file:
 ```
-a,bpqrs,1643121629,1643121629,__	<- Record r_id: 1			(0 * 32 =  0 offset, 32 length)
-c,d,1643121629,1643121629,______	<- Record r_id: 2			(1 * 32 = 32 offset, 32 length)
-ef,g,1643121629,1643121629,____x	<- Soft deleted record, r_id: 3		(2 * 32 = 64 offset, 32 length)
-,,,,___________________________X	<- Hard deleted record, r_id: 4		(3 * 32 = 96 offset, 32 length)
+a,bpqrs,1643121629,1643121629,__	<- Record id: 1			(0 * 32 =  0 offset, 32 length)
+c,d,1643121629,1643121629,______	<- Record id: 2			(1 * 32 = 32 offset, 32 length)
+ef,g,1643121629,1643121629,____x	<- Soft deleted record, id: 3		(2 * 32 = 64 offset, 32 length)
+,,,,___________________________X	<- Hard deleted record, id: 4		(3 * 32 = 96 offset, 32 length)
 ```
 
 
@@ -87,7 +87,7 @@ $table_config = [
 
 Example callbacks:
 ```php
-function csvdb_testdb_validations_callback($r_id, $values, $t) {
+function csvdb_testdb_validations_callback($id, $values, $t) {
 	if(!$values['username']) return false;
 	return true;
 }
@@ -111,29 +111,29 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 	* Adds a new record at the end.
 	* Accepts either indexed array or associative array.
 
-2. csvdb_read($t, $r_id, $columns=[])
-	* Return associative array of the record at r_id.
+2. csvdb_read($t, $id, $columns=[])
+	* Return associative array of the record at id.
 	* Returns 0 for soft-deleted record, and false for hard-deleted.
 
-3. csvdb_update($t, $r_id, $values)
-	* Update a record at record at r_id.
+3. csvdb_update($t, $id, $values)
+	* Update a record at record at id.
 	* Values can be indexed array or associative array.
 	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
 
-4. csvdb_delete($t, $r_id, $hard_delete=false)
-	* Deletes a record by r_id.
+4. csvdb_delete($t, $id, $hard_delete=false)
+	* Deletes a record by id.
 	* Default is soft delete, i.e data is not removed and record can be restored.
 	* With hard delete all values are removed permanently.
-	* Deleted records remain in the table, for r_ids to remain the same.
+	* Deleted records remain in the table, for ids to remain the same.
 
 5. csvdb_list($t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 	* Return all records in the table, with pagination if needed.
 
-6. csvdb_fetch($t, $r_ids, $columns=[])
-	* Return multiple records by given r_ids array.
+6. csvdb_fetch($t, $ids, $columns=[])
+	* Return multiple records by given ids array.
 
-7. csvdb_last_r_id($t)
-	* Returns the last r_id of the table.
+7. csvdb_last_id($t)
+	* Returns the last id of the table.
 
 
 ### Extra (csvdb-extra.php)
@@ -182,7 +182,7 @@ This version contains extra functionality of CSVDB.
 
 ## Issues
 
-* [x] Return new r_id for create_record.
+* [x] Return new id for create_record.
 * [x] Wrong list records when only one record.
 * [ ] Return false instead of -1 for record error
 
