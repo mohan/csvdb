@@ -282,7 +282,7 @@ function test_csvdb_text_column()
 
 function t($test_name, $result, $print_pass=true)
 {
-	if(result === false || $result == NULL || !$result) {
+	if($result === false || $result == NULL || !$result) {
 		echo "<hr><div id='result'>";
 		echo "<p style='color:red;'>✗ Fail: " . $test_name . "\n\n";
 		debug_print_backtrace();

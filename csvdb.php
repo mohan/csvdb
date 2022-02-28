@@ -40,16 +40,12 @@ function csvdb_create(&$t, $values)
 	if(!$final_values) return false;
 
 	$fp = fopen($filepath, 'a');
-	csvdb_last_id($t);
 	_csvdb_write_csv($fp, $final_values);
 	fclose($fp);
 
-	$t['__last_record_id'] += 1;
-	$id = $t['__last_record_id'];
-
 	_csvdb_log($t, "create [id: $id] with values [" . join(',', $values) . "]");
 
-	return $id;
+	return csvdb_last_id($t);;
 }
 
 
@@ -214,11 +210,9 @@ function csvdb_last_id(&$t)
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
-	if(!$t['__last_record_id'] && is_file($filepath)){
-		$t['__last_record_id'] = filesize($filepath) / ($t['max_record_width'] + 1);
-	}
-
-	return $t['__last_record_id'];
+	// Todo: Cache internally? for performance.
+	clearstatcache(true, $filepath);
+	return filesize($filepath) / ($t['max_record_width'] + 1);
 }
 
 
@@ -440,15 +434,14 @@ function csvdb_text_create(&$t, $column_name, $text)
 	if(!$text) return false;
 
 	$filepath = _csvdb_text_filepath($t, $column_name);
-	$offset = _csvdb_text_offset($t, $filepath, $column_name);
+	$offset = _csvdb_text_offset($filepath);
 	
 	$fp = fopen($filepath, 'a');
 	_csvdb_fwrite_text($fp, $text, true);
 	fclose($fp);
 
 	$text_len = strlen($text);
-	$t['__text_column_' . $column_name . '_total_bytes'] = $offset + $text_len + 2;
-	// +1 for first byte
+	// +1 for first byte; fread reads from next byte;
 	return [ $offset,  $text_len ];
 }
 
@@ -557,18 +550,11 @@ function _csvdb_text_filepath(&$t, $column_name)
 }
 
 
-function _csvdb_text_offset(&$t, $filepath, $column_name)
+function _csvdb_text_offset($filepath)
 {
-	$key = '__text_column_' . $column_name . '_total_bytes';
-	if(!$t[$key]){
-		if(is_file($filepath)){
-			$t[$key] = filesize($filepath);
-		}
-
-		if(!$t[$key]) $t[$key] = 0;
-	}
-
-	return $t[$key];
+	// Todo: Cache internally? for performance.
+	clearstatcache(true, $filepath);
+	return filesize($filepath);
 }
 
 

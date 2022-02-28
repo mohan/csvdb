@@ -109,6 +109,7 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 
 1. csvdb_create($t, $values)
 	* Adds a new record at the end.
+	* Returns new id.
 	* Accepts either indexed array or associative array.
 
 2. csvdb_read($t, $id, $columns=[])
@@ -191,7 +192,7 @@ This version contains extra functionality of CSVDB.
 
 * [x] Return new id for create_record.
 * [x] Wrong list records when only one record.
-* [ ] Return false instead of -1 for record error
+* [x] Return false instead of -1 for record error
 
 
 

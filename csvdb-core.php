@@ -40,16 +40,12 @@ function csvdb_create(&$t, $values)
 	if(!$final_values) return false;
 
 	$fp = fopen($filepath, 'a');
-	csvdb_last_id($t);
 	_csvdb_write_csv($fp, $final_values);
 	fclose($fp);
 
-	$t['__last_record_id'] += 1;
-	$id = $t['__last_record_id'];
-
 	_csvdb_log($t, "create [id: $id] with values [" . join(',', $values) . "]");
 
-	return $id;
+	return csvdb_last_id($t);;
 }
 
 
@@ -214,11 +210,9 @@ function csvdb_last_id(&$t)
 	$filepath = _csvdb_is_valid_config($t);
 	if(!$filepath) return false;
 
-	if(!$t['__last_record_id'] && is_file($filepath)){
-		$t['__last_record_id'] = filesize($filepath) / ($t['max_record_width'] + 1);
-	}
-
-	return $t['__last_record_id'];
+	// Todo: Cache internally? for performance.
+	clearstatcache(true, $filepath);
+	return filesize($filepath) / ($t['max_record_width'] + 1);
 }
 
 
