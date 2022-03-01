@@ -121,11 +121,11 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 	* Values can be indexed array or associative array.
 	* Rewrites the whole record. (Diffing may be used in future to improve performance.)
 
-4. csvdb_delete($t, $id, $hard_delete=false)
+4. csvdb_delete($t, $id, $soft_delete=false)
 	* Deletes a record by id.
-	* Default is soft delete, i.e data is not removed and record can be restored.
+	* With soft delete data is not removed and record can be restored.
 	* With hard delete all values are removed permanently.
-	* Deleted records remain in the table, for ids to remain the same.
+	* Empty deleted records remain in the table, for ids to remain the consistent.
 
 5. csvdb_list($t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 	* Return all records in the table, with pagination if needed.
@@ -216,9 +216,6 @@ This version contains extra functionality of CSVDB.
 * Targeted use case of building a C language web application as CGI/Apache module.
 	* Compiled languages are faster as executable code is loaded into memory, which is superior to opcode.
 * Power of PHP is associative array
-	* Only data structure needed to implement in C.
-	* Implement C compiler extension for associative array syntax.
-	* Garbage collection is just calling `free` at the end of run loop.
 * C has `printf` for templating, PHP has `printf`.
 * C language is beautiful. There are only user defined functions.
 	* PHP is C language. (Docs are downlodable offline too).

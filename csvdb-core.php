@@ -33,7 +33,7 @@ $table_config = [
 
 function csvdb_create(&$t, $values)
 {
-	$filepath = _csvdb_is_valid_config($t);
+	$filepath = _csvdb_is_valid_config($t, false);
 	if(!$filepath) return false;
 	
 	$final_values = _csvdb_prepare_values_to_write($t, $values);
@@ -52,7 +52,7 @@ function csvdb_create(&$t, $values)
 function csvdb_read(&$t, $id, $columns=[])
 {
 	$filepath = _csvdb_is_valid_config($t);
-	if(!$filepath || !is_file($filepath)) return false;
+	if(!$filepath) return false;
 
 	$fp = fopen($filepath, 'r');
 	
@@ -124,7 +124,7 @@ function csvdb_delete(&$t, $id, $soft_delete=false)
 			$values['updated_at'] = '';
 		}
 
-		$values = _csvdb_prepare_values_to_write($t, $values);
+		$values = _csvdb_prepare_values_to_write($t, $values, true);
 		$values['___padding'][-1] = 'X';
 
 		fseek($fp, $record_position_id);
@@ -142,7 +142,7 @@ function csvdb_delete(&$t, $id, $soft_delete=false)
 function csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 {
 	$filepath = _csvdb_is_valid_config($t);
-	if(!$filepath || !is_file($filepath)) return [];
+	if(!$filepath) return [];
 
 	// First id
 	// max_record_width+1; +1 for new line
@@ -184,7 +184,7 @@ function csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
 function csvdb_fetch(&$t, $ids, $columns=[])
 {
 	$filepath = _csvdb_is_valid_config($t);
-	if(!$filepath || !is_file($filepath)) return [];
+	if(!$filepath) return [];
 
 	$fp = fopen($filepath, 'r');
 	$records = [];
@@ -221,9 +221,12 @@ function csvdb_last_id(&$t)
 //
 
 // Checks if config is valid and returns filepath
-function _csvdb_is_valid_config(&$t)
+function _csvdb_is_valid_config(&$t, $check_file_exists=true)
 {
-	return !$t || !$t['max_record_width'] || !$t['columns'] ? false : $t['data_dir'] . '/' . $t['tablename'];
+	$filepath = !$t || !$t['max_record_width'] || !$t['columns'] ? false : $t['data_dir'] . '/' . $t['tablename'];
+
+	if(!$check_file_exists) return $filepath;
+	return file_exists($filepath) ? $filepath : false;
 }
 
 
@@ -277,9 +280,9 @@ function _csvdb_read_record_from_fp(&$t, $fp, $id, $columns)
 
 
 // Clean values (index or assoc array) into valid assoc array according to columns
-function _csvdb_prepare_values_to_write(&$t, $values)
+function _csvdb_prepare_values_to_write(&$t, $values, $skip_validations=false)
 {
-	if( $t['validations_callback'] && !call_user_func($t['validations_callback'], NULL, $values, $t) ){
+	if( !$skip_validations && $t['validations_callback'] && !call_user_func($t['validations_callback'], NULL, $values, $t) ){
 		return false;
 	}
 

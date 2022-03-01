@@ -39,7 +39,7 @@ function csvdb_text_create(&$t, $column_name, $text)
 {
 	if(!$text) return false;
 
-	$filepath = _csvdb_text_filepath($t, $column_name);
+	$filepath = _csvdb_text_filepath($t, $column_name, false);
 	$offset = _csvdb_text_offset($filepath);
 	
 	$fp = fopen($filepath, 'a');
@@ -58,7 +58,7 @@ function csvdb_text_read(&$t, $column_name, $reference, $length=false)
 	if(!is_array($reference) || $reference[0] < 0 || $reference[1] <= 0) return false;
 
 	$filepath = _csvdb_text_filepath($t, $column_name);
-	if(!is_file($filepath) || !is_file($filepath)) return false;
+	if(!$filepath) return false;
 
 	$fp = fopen($filepath, 'r');
 	fseek($fp, $reference[0]);
@@ -122,7 +122,7 @@ function csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
 {
 	foreach ($column_names as $column_name) {
 		$filepath = _csvdb_text_filepath($t, $column_name);
-		if(!is_file($filepath)) continue;
+		if(!$filepath) continue;
 
 		$fp = fopen($filepath, 'r');
 
@@ -146,13 +146,17 @@ function csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
 // Internal functions
 //
 
-function _csvdb_text_filepath(&$t, $column_name)
+function _csvdb_text_filepath(&$t, $column_name, $check_file_exists=true)
 {
 	if($t['text_filename']){
-		return $t['data_dir'] . '/' . basename($t['text_filename'], '.text') . '.text';
+		$filepath = $t['data_dir'] . '/' . basename($t['text_filename'], '.text') . '.text';
 	} else {
-		return $t['data_dir'] . '/' . basename($t['tablename'], '.csv') . '_' . $column_name . '.text';
+		$filepath = $t['data_dir'] . '/' . basename($t['tablename'], '.csv') . '_' . $column_name . '.text';
 	}
+
+	if(!$check_file_exists) return $filepath;
+
+	return file_exists($filepath) ? $filepath : false;
 }
 
 

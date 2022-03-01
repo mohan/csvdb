@@ -37,7 +37,7 @@ function test_csvdb_core( )
 {
 	global $config;
 
-	$csv_filepath = _csvdb_is_valid_config($config);
+	$csv_filepath = _csvdb_is_valid_config($config, false);
 	if(is_file($csv_filepath)) unlink($csv_filepath);
 	t("_csvdb_is_valid_config", strpos($csv_filepath, sys_get_temp_dir()) === 0);
 
