@@ -127,11 +127,19 @@ This is the core of CSVDB. It only implements essential CRUD functions.
 	* With hard delete all values are removed permanently.
 	* Empty deleted records remain in the table, for ids to remain the consistent.
 
-5. csvdb_list($t, $columns=[], $reverse_order=false, $page=1, $limit=-1)
+5. csvdb_list($t, $columns=[], $reverse_order=false, $page=1, $limit=-1, $filter_cb=false, $transform_cb=false)
 	* Return all records in the table, with pagination if needed.
+	* $columns will return only specified columns
+	* $reverse_order will list from bottom to top
+	* $page and $limit is for pagination
+	* `filter_cb` is function to filter list, return `true` to keep record in return records.
+	* `transform_cb` function transforms each record. Return transformed record.
+	* If `__is_deleted` is in $columns, it will return deleted records also. `1`=soft deleted, `true`=hard deleted.
 
-6. csvdb_fetch($t, $ids, $columns=[])
+6. csvdb_fetch($t, $ids, $columns=[], $filter_cb=false, $transform_cb=false)
 	* Return multiple records by given ids array.
+	* `filter_cb` is function to filter list, return `true` to keep record in return records.
+	* `transform_cb` function transforms each record. Return transformed record.
 
 7. csvdb_last_id($t)
 	* Returns the last id of the table.
@@ -164,6 +172,9 @@ This version contains extra functionality of CSVDB.
 
 7. Todo: csvdb_text_clean_file(&$t, $column_name)
 	* Rewrites file without deleted entries
+
+8. csvdb_fill_date_format($date_format, $column_names, &$data)
+	* Changes columns to `date` function date format.
 
 
 ## TODO:

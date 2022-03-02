@@ -14,6 +14,8 @@ cat csvdb-core.php csvdb-extra.php > csvdb.php
 ```
 
 Implemented functions:
+
+## Text Column
 1. csvdb_text_create(&$t, $column_name, $text)
 2. csvdb_text_read(&$t, $column_name, $reference, $truncate=false)
 3. csvdb_text_update(&$t, $column_name, $reference, $text)
@@ -21,6 +23,9 @@ Implemented functions:
 5. csvdb_text_fill_record(&$t, $column_names, &$record, $length=false)
 6. csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
 7. Todo: csvdb_text_clean_file(&$t, $column_name)
+
+## Utils
+8. csvdb_fill_date_format($date_format, $column_names, &$data)
 
 ***/
 
@@ -142,6 +147,20 @@ function csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
 }
 
 
+// Utils
+
+function csvdb_fill_date_format($date_format, $column_names, &$data)
+{
+	foreach ($column_names as $column) {
+		foreach($data as $key=>$value) {
+			if(isset($data[$key][$column])){
+				$data[$key][$column] = date($date_format, $data[$key][$column]);
+			}
+		}
+	}
+}
+
+
 //
 // Internal functions
 //
@@ -163,8 +182,12 @@ function _csvdb_text_filepath(&$t, $column_name, $check_file_exists=true)
 function _csvdb_text_offset($filepath)
 {
 	// Todo: Cache internally? for performance.
-	clearstatcache(true, $filepath);
-	return filesize($filepath);
+	if(file_exists($filepath)){
+		clearstatcache(true, $filepath);
+		return filesize($filepath);
+	} else {
+		return 0;
+	}
 }
 
 
