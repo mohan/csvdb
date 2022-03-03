@@ -204,7 +204,8 @@ This version contains extra functionality of CSVDB.
 * [x] Return new id for create_record.
 * [x] Wrong list records when only one record.
 * [x] Return false instead of -1 for record error
-* [ ] 0 id is returing data
+* [x] 0 id is returing data
+* [ ] updated_at updating for updating json fields
 
 
 

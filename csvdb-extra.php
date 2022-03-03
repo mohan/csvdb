@@ -45,6 +45,7 @@ function csvdb_text_create(&$t, $column_name, $text)
 	if(!$text) return false;
 
 	$filepath = _csvdb_text_filepath($t, $column_name, false);
+
 	$offset = _csvdb_text_offset($filepath);
 	
 	$fp = fopen($filepath, 'a');
@@ -78,6 +79,8 @@ function csvdb_text_read(&$t, $column_name, $reference, $length=false)
 function csvdb_text_update(&$t, $column_name, $reference, $text)
 {
 	$filepath = _csvdb_text_filepath($t, $column_name);
+	if(!$filepath) return false;
+
 	$text_len = strlen($text);
 
 	if($text_len > $reference[1]){
@@ -86,7 +89,7 @@ function csvdb_text_update(&$t, $column_name, $reference, $text)
 	} else {
 		$fp = fopen($filepath, 'c');
 		fseek($fp, $reference[0]);
-		$padding = $reference[1] - $text_len == 0 ? '' : str_repeat(" ", $reference[1] - $text_len);
+		$padding = $reference[1] - $text_len == 0 ? '' : str_repeat(" ", $reference[1] - $text_len - 1) . "\n";
 		$bytes = $text . $padding;
 		_csvdb_fwrite_text($fp, $bytes);
 		fclose($fp);
@@ -100,6 +103,7 @@ function csvdb_text_update(&$t, $column_name, $reference, $text)
 function csvdb_text_delete(&$t, $column_name, $reference)
 {
 	$filepath = _csvdb_text_filepath($t, $column_name);
+	if(!$filepath) return false;
 
 	$fp = fopen($filepath, 'c');
 	fseek($fp, $reference[0]);
@@ -181,7 +185,6 @@ function _csvdb_text_filepath(&$t, $column_name, $check_file_exists=true)
 
 function _csvdb_text_offset($filepath)
 {
-	// Todo: Cache internally? for performance.
 	if(file_exists($filepath)){
 		clearstatcache(true, $filepath);
 		return filesize($filepath);
