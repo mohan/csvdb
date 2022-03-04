@@ -56,7 +56,7 @@ ef,g,1643121629,1643121629,____x	<- Soft deleted record, id: 3		(2 * 32 = 64 off
 	* Stored in a different single file.
 	* Implements mailbox style text file.
 	* Returns reference to entry: [start_offset, length].
-	* Store in json column manually.
+	* Store in json column manually or use `auto_managed_text_columns=>[column_name]` in config.
 7. TextFile (not built-in)
 	* Store in individual text files.
 	* Use PHP `file_get_contents` and `file_put_contents` as per your needs and dir structure.

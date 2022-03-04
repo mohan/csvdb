@@ -129,6 +129,8 @@ function csvdb_text_fill_record(&$t, $column_names, &$record, $length=false)
 // Fill text column array with full text data
 function csvdb_text_fill_records(&$t, $column_names, &$records, $length=false)
 {
+	if(sizeof($column_names) == 0 || sizeof($records) == 0) return;
+
 	foreach ($column_names as $column_name) {
 		$filepath = _csvdb_text_filepath($t, $column_name);
 		if(!$filepath) continue;
@@ -202,3 +204,75 @@ function _csvdb_fwrite_text($fp, &$bytes, $separator=false)
 	fflush($fp);
 	flock($fp, LOCK_UN);
 }
+
+
+
+
+// 
+// Callbacks from core
+// 
+
+define('__CSVDB_EXTRA_IS_DEFINED', true);
+
+
+function _csvdb_extra_create_cb(&$t, &$values)
+{
+	if(!is_array($t['auto_managed_text_columns'])) return;
+
+	foreach ($t['auto_managed_text_columns'] as $column_name) {
+		if(isset($values[$column_name])){
+			$values[$column_name] = csvdb_text_create($t, $column_name, $values[$column_name]);
+		}
+	}
+}
+
+
+function _csvdb_extra_read_cb(&$t, &$values)
+{
+	if(!is_array($t['auto_managed_text_columns'])) return;
+
+	foreach ($t['auto_managed_text_columns'] as $column_name) {
+		if(is_array($values[$column_name])){
+			$values[$column_name] = csvdb_text_read($t, $column_name, $values[$column_name]);
+		}
+	}
+}
+
+
+function _csvdb_extra_update_cb(&$t, &$write_record, $values)
+{
+	if(!is_array($t['auto_managed_text_columns'])) return;
+
+	foreach ($t['auto_managed_text_columns'] as $column_name) {
+		if(is_string($values[$column_name])){
+			$write_record[$column_name] = csvdb_text_update($t, $column_name, $write_record[$column_name], $values[$column_name]);
+		}
+	}
+}
+
+
+function _csvdb_extra_delete_cb(&$t, $id, $record)
+{
+	if(!is_array($t['auto_managed_text_columns'])) return;
+
+	foreach ($t['auto_managed_text_columns'] as $column_name) {
+		if(is_array($record[$column_name])){
+			csvdb_text_delete($t, $column_name, $record[$column_name]);
+		}
+	}
+}
+
+
+function _csvdb_extra_list_cb(&$t, &$records)
+{
+	if(!is_array($t['auto_managed_text_columns'])) return;
+
+	csvdb_text_fill_records($t, $t['auto_managed_text_columns'], $records);
+}
+
+
+function _csvdb_extra_fetch_cb(&$t, &$records)
+{
+	return _csvdb_extra_list_cb($t, $records);
+}
+

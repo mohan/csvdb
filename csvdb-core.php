@@ -35,6 +35,8 @@ function csvdb_create(&$t, $values)
 {
 	$filepath = _csvdb_is_valid_config($t, false);
 	if(!$filepath) return false;
+
+	if(defined('__CSVDB_EXTRA_IS_DEFINED')) _csvdb_extra_create_cb($t, $values);
 	
 	$final_values = _csvdb_prepare_values_to_write($t, $values);
 	if(!$final_values) return false;
@@ -59,6 +61,8 @@ function csvdb_read(&$t, $id, $columns=[])
 	$values = _csvdb_read_record_from_fp($t, $fp, $id, $columns);
 	fclose($fp);
 
+	if(defined('__CSVDB_EXTRA_IS_DEFINED')) _csvdb_extra_read_cb($t, $values);
+
 	_csvdb_log($t, "read [id: $id]");
 
 	return $values == -1 || $values === 0 || $values === false ? false : $values;
@@ -81,6 +85,7 @@ function csvdb_update(&$t, $id, $values)
 	// Overwrite record values from values argument
 	foreach ($values as $column => $value) {
 		if(!array_key_exists($column, $t['columns'])) continue;
+		if($t['columns'][$column] == 'json' && !is_array($values[$column])) continue;
 
 		if(
 			$t['columns'][$column] == 'json' && is_array($record[$column]) && sizeof($record[$column]) > 0 && !isset($record[$column][0])
@@ -91,6 +96,8 @@ function csvdb_update(&$t, $id, $values)
 			$record[$column] = $value;
 		}
 	}
+
+	if(defined('__CSVDB_EXTRA_IS_DEFINED')) _csvdb_extra_update_cb($t, $record, $values);
 
 	$record = _csvdb_prepare_values_to_write($t, $record);
 	if(!$record) {
@@ -131,6 +138,11 @@ function csvdb_delete(&$t, $id, $soft_delete=false)
 		fseek($fp, $record_position_id + $t['max_record_width'] - 1);
 		_csvdb_fwrite($fp, 'x');
 	} else {
+		if(defined('__CSVDB_EXTRA_IS_DEFINED')) {
+			$record = _csvdb_read_record_from_fp($t, $fp, $id, array_keys(_csvdb_columns($t)));
+			_csvdb_extra_delete_cb($t, $id, $record);
+		}
+
 		$values = [];
 		foreach ($t['columns'] as $column => $type) {
 			$values[$column] = '';
@@ -194,6 +206,8 @@ function csvdb_list(&$t, $columns=[], $reverse_order=false, $page=1, $limit=-1, 
 
 	fclose($fp);
 
+	if(defined('__CSVDB_EXTRA_IS_DEFINED')) _csvdb_extra_list_cb($t, $records);
+
 	_csvdb_log($t, "list " . sizeof($records) . " records");
 
 	return $records;
@@ -224,6 +238,8 @@ function csvdb_fetch(&$t, $ids, $columns=[], $filter_cb=false, $transform_cb=fal
 	}
 
 	fclose($fp);
+
+	if(defined('__CSVDB_EXTRA_IS_DEFINED')) _csvdb_extra_fetch_cb($t, $records);
 
 	_csvdb_log($t, "fetch [id: " . join(',', $ids) . "]");
 
@@ -357,7 +373,7 @@ function _csvdb_prepare_values_to_write(&$t, $values, $skip_validations=false)
 }
 
 
-// Typecast values to string
+// Typecast values to string for writing CSV to file
 function _csvdb_stringify_values(&$t, &$values)
 {
 	foreach ($t['columns'] as $column => $type) {
@@ -373,7 +389,7 @@ function _csvdb_stringify_values(&$t, &$values)
 }
 
 
-// Typecast values to type
+// Typecast values to type for reading in application
 function _csvdb_typecast_values(&$t, &$values)
 {
 	foreach ($t['columns'] as $column => $type) {

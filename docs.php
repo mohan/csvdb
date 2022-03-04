@@ -39,6 +39,7 @@ Usage:
 				<ul>
 					<li><a href='?file=tests.php&amp;test=core'>csvdb core</a></li>
 					<li><a href='?file=tests.php&amp;test=full'>csvdb full</a></li>
+					<li><a href='?file=tests.php&amp;test=full&amp;skip_large_record'>csvdb full - Skip large record.</a></li>
 				</ul>
 			</li>
 		</ul>

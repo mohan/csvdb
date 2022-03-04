@@ -11,8 +11,13 @@
 <?php
 // License: GPL
 
-require_once './csvdb-core.php';
-require_once './csvdb-extra.php';
+if($_GET['test'] == 'core') {
+	require './csvdb-core.php';
+} else {
+	require './csvdb-core.php';
+	require './csvdb-extra.php';
+}
+
 
 $config = [
 	"tablename" => 'csvdb-testdb-123456789.csv',
@@ -280,6 +285,81 @@ function test_csvdb_text_column()
 
 
 
+
+function test_csvdb_auto_managed_text_columns()
+{
+	$table = [
+		"tablename" => 'csvdb-testdb-auto-managed-text-columns-123456789.csv',
+		"data_dir" => sys_get_temp_dir(),
+		"max_record_width" => 20,
+		"columns" => [
+			"notes"=>"json"
+		],
+		"auto_managed_text_columns" => [ 'notes' ],
+		"log" => true
+	];
+
+	$note = 'This is a test note.';
+
+	$id = csvdb_create($table, ['notes'=>$note]);
+	$table['auto_managed_text_columns'] = [];
+	$record = csvdb_read($table, $id); // Read without auto
+	$notes = csvdb_text_read($table, 'notes', $record['notes']);
+	t('auto_managed_text_columns - create', $id == 1 && $record['notes'][0] == 0 && $record['notes'][1] == 20 && $notes == $note);
+	
+	$table['auto_managed_text_columns'] = ['notes'];
+	$record = csvdb_read($table, $id); // Read with auto
+	t('auto_managed_text_columns - read', $record['notes'] == $note);
+
+	// update
+	csvdb_update($table, $id, ['notes'=>str_repeat($note, 2)]);
+	$record = csvdb_read($table, $id); // Read with auto
+	t('auto_managed_text_columns - update', $record['notes'] == str_repeat($note, 2));
+
+	// delete
+	$id2 = csvdb_create($table, ['notes'=>$note]);
+	$table['auto_managed_text_columns'] = [];
+	$record = csvdb_read($table, $id2); // Read without auto
+	$table['auto_managed_text_columns'] = ['notes'];
+	csvdb_delete($table, $id2);
+	// Must be empty after delete
+	t('auto_managed_text_columns - delete', csvdb_text_read($table, 'notes', $record['notes']) == str_repeat(' ', strlen($note)));
+
+	// list
+	$records = csvdb_list($table);
+	t('auto_managed_text_columns - list', $records[1]['notes'] == str_repeat($note, 2));
+
+	// fetch
+	$records = csvdb_fetch($table, [1]);
+	t('auto_managed_text_columns - fetch', $records[1]['notes'] == str_repeat($note, 2));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function t($test_name, $result, $print_pass=true)
 {
 	if($result === false || $result == NULL || !$result) {
@@ -329,7 +409,9 @@ function print_csv()
 	echo "<div><br/><hr/>" . file_get_contents($csv_filepath) . "</div>";
 	// echo "<div><br/><hr/>" . file_get_contents($csv_large_filepath);
 	unlink($csv_filepath);
-	unlink($csv_large_filepath);
+	if(!isset($_GET['skip_large_record'])) unlink($csv_large_filepath);
+	unlink(sys_get_temp_dir() . "/csvdb-testdb-auto-managed-text-columns-123456789.csv");
+	unlink(sys_get_temp_dir() . "/csvdb-testdb-auto-managed-text-columns-123456789_notes.text");
 	echo "<hr><p>Deleted " . $csv_filepath . "\n";
 }
 
@@ -345,8 +427,9 @@ if($_GET['test'] == 'core'){
 	test_csvdb_core();
 } else {
 	test_csvdb_core();
-	test_csvdb_large_record();
+	if(!isset($_GET['skip_large_record'])) test_csvdb_large_record();
 	test_csvdb_text_column();
+	test_csvdb_auto_managed_text_columns();
 }
 
 print_csv();
