@@ -173,7 +173,7 @@ function csvdb_fill_date_format($date_format, $column_names, &$data)
 
 function _csvdb_text_filepath(&$t, $column_name, $check_file_exists=true)
 {
-	if($t['text_filename']){
+	if(isset($t['text_filename'])){
 		$filepath = $t['data_dir'] . '/' . basename($t['text_filename'], '.text') . '.text';
 	} else {
 		$filepath = $t['data_dir'] . '/' . basename($t['tablename'], '.csv') . '_' . $column_name . '.text';
@@ -217,7 +217,7 @@ define('__CSVDB_EXTRA_IS_DEFINED', true);
 
 function _csvdb_extra_create_cb(&$t, &$values)
 {
-	if(!is_array($t['auto_managed_text_columns'])) return;
+	if(!isset($t['auto_managed_text_columns'])) return;
 
 	foreach ($t['auto_managed_text_columns'] as $column_name) {
 		if(isset($values[$column_name])){
@@ -229,7 +229,7 @@ function _csvdb_extra_create_cb(&$t, &$values)
 
 function _csvdb_extra_read_cb(&$t, &$values)
 {
-	if(!is_array($t['auto_managed_text_columns'])) return;
+	if(!isset($t['auto_managed_text_columns'])) return;
 
 	foreach ($t['auto_managed_text_columns'] as $column_name) {
 		if(is_array($values[$column_name])){
@@ -241,7 +241,7 @@ function _csvdb_extra_read_cb(&$t, &$values)
 
 function _csvdb_extra_update_cb(&$t, &$write_record, $values)
 {
-	if(!is_array($t['auto_managed_text_columns'])) return;
+	if(!isset($t['auto_managed_text_columns'])) return;
 
 	foreach ($t['auto_managed_text_columns'] as $column_name) {
 		if(is_string($values[$column_name])){
@@ -253,7 +253,7 @@ function _csvdb_extra_update_cb(&$t, &$write_record, $values)
 
 function _csvdb_extra_delete_cb(&$t, $id, $record)
 {
-	if(!is_array($t['auto_managed_text_columns'])) return;
+	if(!isset($t['auto_managed_text_columns'])) return;
 
 	foreach ($t['auto_managed_text_columns'] as $column_name) {
 		if(is_array($record[$column_name])){
@@ -265,7 +265,7 @@ function _csvdb_extra_delete_cb(&$t, $id, $record)
 
 function _csvdb_extra_list_cb(&$t, &$records)
 {
-	if(!is_array($t['auto_managed_text_columns'])) return;
+	if(!isset($t['auto_managed_text_columns'])) return;
 
 	csvdb_text_fill_records($t, $t['auto_managed_text_columns'], $records);
 }

@@ -1,7 +1,5 @@
 <style>
-	pre{ color: #888; }
-	b { font-weight: normal; }
-	pre h2, pre h4, pre p, pre div { color: #000; }
+	.muted{ color: #888; }
 </style>
 <script type="text/javascript">
 	window.onload = function(){
@@ -68,12 +66,12 @@ function test_csvdb_core( )
 	t("csvdb_read", $record['id'] == 2 && $record['name'] == 'c' && $record['username'] == 'd');
 
 
-	csvdb_create($config, [	name=>"a-id",
-									username=>"example-user",
-									has_attr=>false,
-									lucky_number=>7,
-									float_lucky_number=>8.7,
-									meta=>[a=>1, b=>2, c=>3]
+	$id = csvdb_create($config, [	'name'=>"a-id",
+									'username'=>"example-user",
+									'has_attr'=>false,
+									'lucky_number'=>7,
+									'float_lucky_number'=>8.7,
+									'meta'=>['a'=>1, 'b'=>2, 'c'=>3]
 								]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create - row length", strlen($csv_contents) == 303);
@@ -92,39 +90,39 @@ function test_csvdb_core( )
 	$record = csvdb_read($config, 3, ['id', 'name']);
 	t("csvdb_read selected columns", sizeof($record) == 2 && $record['id'] == 3 && $record['name'] == 'a-id');
 
-	csvdb_create($config, [name=>"b-id", username=>"example2-user", "c", "d", "e", "f", "e"]);
+	csvdb_create($config, ['name'=>"b-id", 'username'=>"example2-user", "c", "d", "e", "f", "e"]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create - row length", strlen($csv_contents) == 404);
 	t("csvdb_create - correct data", strpos($csv_contents, "b-id,example2-user,", 303) == 303);
 
 
-	csvdb_create($config, [name=>"c-id", invalid_column=>"example3-user", "c", "d", "e", "f", "e"]);
+	csvdb_create($config, ['name'=>"c-id", 'invalid_column'=>"example3-user", "c", "d", "e", "f", "e"]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_create - row length", strlen($csv_contents) == 505);
 	t("csvdb_create - correct data", strpos($csv_contents, "c-id,,,", 404) == 404);
 
-	csvdb_create($config, [name=>"c-id-to-be-overwritten", username=>"c-user"]);
-	csvdb_update($config, 6, [name=>"d-id", username=>"d-user"]);
-	csvdb_update($config, 5, [name=>"c-id", username=>"c-user"]);
+	csvdb_create($config, ['name'=>"c-id-to-be-overwritten", 'username'=>"c-user"]);
+	csvdb_update($config, 6, ['name'=>"d-id", 'username'=>"d-user"]);
+	csvdb_update($config, 5, ['name'=>"c-id", 'username'=>"c-user"]);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_update - row length", strlen($csv_contents) == 606);
 	t("csvdb_update - correct data", strpos($csv_contents, "c-id,c-user,", 404) == 404);
 	t("csvdb_update - correct data", strpos($csv_contents, "d-id,d-user,", 505) == 505);
 
-	csvdb_update($config, 5, [username=>"c-user-partial-updated"], true);
+	csvdb_update($config, 5, ['username'=>"c-user-partial-updated"], true);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_update - partial_update", strpos($csv_contents, "c-id,c-user-partial-updated,", 404) == 404);
 
 
 	// Soft delete
-	csvdb_create($config, [name=>"e", username=>"e-user", meta=>[1,2,3]]);
+	csvdb_create($config, ['name'=>"e", 'username'=>"e-user", 'meta'=>[1,2,3]]);
 	csvdb_delete($config, 7, true);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_delete - soft delete", strpos($csv_contents, "___x", 606) > 606);
 	t("csvdb_read - soft deleted record", csvdb_read($config, 7) === false);
 
 	// Hard delete
-	csvdb_create($config, [name=>"f", username=>"f-user"]);
+	csvdb_create($config, ['name'=>"f", 'username'=>"f-user"]);
 	csvdb_delete($config, 8);
 	$csv_contents = file_get_contents($csv_filepath);
 	t("csvdb_delete - hard delete", strpos($csv_contents, ",,,,,,,,_____", 707) == 707 && strpos($csv_contents, "___X", 707) > 707);
@@ -173,8 +171,8 @@ function test_csvdb_core( )
 	t("transformations_callback", $record['computed_value'] == 'b - a');
 
 	// UTF
-	csvdb_create($config, [name=>"🐶🐱🐭", username=>"🐴🦄🐝", meta=>[UTF=>true, '2bytes' => '1char']]);
-	csvdb_create($config, [name=>"Example", username=>"user", meta=>[UTF=>false]]);
+	csvdb_create($config, ['name'=>"🐶🐱🐭", 'username'=>"🐴🦄🐝", 'meta'=>['UTF'=>true, '2bytes' => '1char']]);
+	csvdb_create($config, ['name'=>"Example", 'username'=>"user", 'meta'=>['UTF'=>false]]);
 	$record = csvdb_read($config, 10);
 	t("csvdb_read", $record['id'] == 10 && $record['name'] == 'Example' && $record['username'] == 'user');
 }
@@ -192,7 +190,7 @@ function csvdb_test_validations_callback($id, $values, $config)
 function csvdb_test_transformations_callback($values, $config)
 {
 	// If not selected column
-	if(!$values['username']) return [];
+	if(!isset($values['username'])) return [];
 
 	return [
 		'computed_value' => $values['username'] . ' - ' . $values['name']
@@ -218,7 +216,7 @@ function test_csvdb_large_record()
 	];
 
 	for ($i=1; $i <= 10000; $i++) {
-		$id = csvdb_create($table_large, [name=>"id-$i", username=>"example-user-$i"]);
+		$id = csvdb_create($table_large, ['name'=>"id-$i", 'username'=>"example-user-$i"]);
 		t("large_record_csvdb_create", $id == $i, false);
 		$record = csvdb_read($table_large, $id);
 		t("large_record_csvdb_read", $record['id'] == $i && $record['name']=="id-$i" && $record['username']=="example-user-$i", false);
@@ -371,9 +369,15 @@ function t($test_name, $result, $print_pass=true)
 		print_csv();
 		exit;
 	} else {
-		if($print_pass) echo "<p>✓ Pass: " . $test_name . "</p><hr>\n";
+		$_debug = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
+		if($print_pass) echo "<p>✓ Pass: $test_name <span class='muted'>line #{$_debug[0]['line']}</span></p><hr>\n";
 	}
 }
+
+
+
+
+
 
 
 
@@ -391,6 +395,7 @@ function print_csv()
 	echo "</th><th>created_at</th><th>updated_at</th><th>padding</th>";
 	echo "</tr></thead><tbody>\n";
 
+	$i = 0;
 	while ($record_str = fgets($fp)) {
 		$record = str_getcsv($record_str);
 
@@ -406,7 +411,7 @@ function print_csv()
 
 	$csv_large_filepath = sys_get_temp_dir() . "/csvdb-test-largerecord-123456789.csv";
 
-	echo "<div><br/><hr/>" . file_get_contents($csv_filepath) . "</div>";
+	echo "<div><br/><hr/>" . htmlentities(file_get_contents($csv_filepath)) . "</div>";
 	// echo "<div><br/><hr/>" . file_get_contents($csv_large_filepath);
 	unlink($csv_filepath);
 	if(!isset($_GET['skip_large_record'])) unlink($csv_large_filepath);

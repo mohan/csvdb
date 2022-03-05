@@ -46,7 +46,7 @@ function csvdb_create(&$t, $values)
 	fclose($fp);
 
 	$id = csvdb_last_id($t);
-	_csvdb_log($t, "create [id: $id] with values [" . join(',', $values) . "]");
+	_csvdb_log($t, "create [id: $id] with values " . json_encode($values));
 
 	return $id;
 }
@@ -88,7 +88,7 @@ function csvdb_update(&$t, $id, $values)
 		if($t['columns'][$column] == 'json' && !is_array($values[$column])) continue;
 
 		if(
-			$t['columns'][$column] == 'json' && is_array($record[$column]) && sizeof($record[$column]) > 0 && !isset($record[$column][0])
+			$t['columns'][$column] == 'json' && is_array($record[$column]) && sizeof($record[$column]) > 0 && !_csvdb_is_indexed_array($record[$column])
 		){
 			// JSON replaces inner values only, not complete column; excludes indexed array;
 			$record[$column] = array_merge($record[$column], $value);
@@ -105,7 +105,7 @@ function csvdb_update(&$t, $id, $values)
 		return false;
 	}
 
-	if( $t['auto_timestamps'] ){
+	if( isset($t['auto_timestamps']) ){
 		$record['updated_at'] = date('U');
 	}
 
@@ -113,7 +113,7 @@ function csvdb_update(&$t, $id, $values)
 	_csvdb_write_csv($fp, $record);
 	fclose($fp);
 
-	_csvdb_log($t, "update [id: $id] with [" . join(',', $values) . "]");
+	_csvdb_log($t, "update [id: $id] with " . json_encode($values));
 
 	return true;
 }
@@ -147,7 +147,7 @@ function csvdb_delete(&$t, $id, $soft_delete=false)
 		foreach ($t['columns'] as $column => $type) {
 			$values[$column] = '';
 		}
-		if($t['auto_timestamps']){
+		if( isset($t['auto_timestamps']) ){
 			$values['created_at'] = '';
 			$values['updated_at'] = '';
 		}
@@ -308,7 +308,7 @@ function _csvdb_read_record_from_fp(&$t, $fp, $id, $columns)
 		$record[$column] = $values[$i++];
 	}
 
-	if($t['auto_timestamps']){
+	if( isset($t['auto_timestamps']) ){
 		$record['created_at'] = intval($values[$i++]);
 		$record['updated_at'] = intval($values[$i++]);
 	}
@@ -321,7 +321,7 @@ function _csvdb_read_record_from_fp(&$t, $fp, $id, $columns)
 
 	_csvdb_typecast_values($t, $record);
 
-	if($t['transformations_callback']) {
+	if( isset($t['transformations_callback']) ) {
 		$transformed_record = call_user_func($t['transformations_callback'], $record, $t);
 		$record = array_merge($record, $transformed_record);
 	}
@@ -334,27 +334,28 @@ function _csvdb_read_record_from_fp(&$t, $fp, $id, $columns)
 // skip_validations = to hard delete record
 function _csvdb_prepare_values_to_write(&$t, $values, $skip_validations=false)
 {
-	if( !$skip_validations && $t['validations_callback'] && !call_user_func($t['validations_callback'], NULL, $values, $t) ){
+	if( !$skip_validations && isset($t['validations_callback']) && !call_user_func($t['validations_callback'], NULL, $values, $t) ){
 		return false;
 	}
 
 	$final_values = [];
 
 	// Indexed array
-	if( reset(array_keys($values)) === 0 ){
+	if( _csvdb_is_indexed_array($values) ){
 		$i = 0;
 		foreach ($t['columns'] as $column => $type) {
-			$final_values[$column] = $values[$i++];
+			$final_values[$column] = isset($values[$i]) ? $values[$i] : '';
+			$i++;
 		}
 	} else {
 		foreach ($t['columns'] as $column => $type) {
-			$final_values[$column] = $values[$column];
+			$final_values[$column] = isset($values[$column]) ? $values[$column] : '';
 		}
 	}
 
 	_csvdb_stringify_values($t, $final_values);
 
-	if( $t['auto_timestamps'] ){
+	if( isset($t['auto_timestamps']) ){
 		$final_values['created_at'] = isset($values['created_at']) ?  $values['created_at'] : date('U');
 		$final_values['updated_at'] = isset($values['updated_at']) ?  $values['updated_at'] : date('U');
 	}
@@ -408,7 +409,7 @@ function _csvdb_columns(&$t)
 {
 	$columns = array_merge(
 					$t['columns'],
-					($t['auto_timestamps'] ? ['created_at'=>'int', 'updated_at'=>'int'] : []),
+					( isset($t['auto_timestamps']) ? ['created_at'=>'int', 'updated_at'=>'int'] : []),
 					['__is_deleted' => '___internal']
 	);
 
@@ -453,10 +454,15 @@ function _csvdb_fwrite($fp, $bytes)
 
 function _csvdb_log(&$t, $message)
 {
-	if($t['log']) trigger_error(basename($t['tablename'], ".csv") . ': ' . $message);
+	if(isset($t['log']) && $t['log']) trigger_error(basename($t['tablename'], ".csv") . ': ' . $message);
 }
 
 
+function _csvdb_is_indexed_array($arr)
+{
+	$arr_keys = array_keys($arr);
+	return reset($arr_keys) === 0;
+}
 
 
 // Make sure there is no newline at the end

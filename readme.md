@@ -206,6 +206,7 @@ This version contains extra functionality of CSVDB.
 * [x] Return false instead of -1 for record error
 * [x] 0 id is returing data
 * [ ] updated_at updating for updating json fields
+* [ ] Input \r\n to \n ?
 
 
 

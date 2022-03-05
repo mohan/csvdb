@@ -8,6 +8,10 @@ Usage:
 
 -->
 
+<?php
+	if(!isset($_GET['file'])) $_GET['file'] = '';
+?>
+
 <html>
 <head>
 	<title>CSVDB<?php echo ': ' . $_GET['file']; ?></title>
@@ -43,7 +47,7 @@ Usage:
 				</ul>
 			</li>
 		</ul>
-		<?php if($_GET['raw']): ?>
+		<?php if(isset($_GET['raw'])): ?>
 			<h2><?php echo $_GET['file']; ?></h2>
 			<pre class='sourcecode'><?php echo sourcecode(htmlentities(file_get_contents('./' . basename($_GET['file'])))); ?></pre>
 		<?php elseif($_GET['file']): ?>
