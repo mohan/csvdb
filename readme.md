@@ -181,6 +181,7 @@ This version contains extra functionality of CSVDB.
 
 * [ ] Code cleanup
 * [ ] Data integrity on power failure
+* [ ] Disk fragmentation
 * [x] test flock
 * [ ] Global common config
 * [x] Implement arr_getcsv instead of implode
